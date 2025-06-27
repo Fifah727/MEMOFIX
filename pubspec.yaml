@@ -1,0 +1,68 @@
+name: memofix
+description: "Une application mobile dédiée à la gestion sécurisée de notes, de mémos audio et d’objectifs personnels."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_media_metadata: ^1.0.0+1
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Base de données locale
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.3
+
+  # Sécurité
+  local_auth: ^2.1.7
+  flutter_secure_storage: ^9.2.4
+
+
+  # Notifications
+  # flutter_local_notifications: ^19.3.0
+  timezone: ^0.10.1
+
+  # Audio
+  # record: ^6.0.0
+  # just_audio: ^0.10.4
+  just_audio: ^0.10.4
+  path: ^1.9.1
+
+  # UI
+  fl_chart: ^1.0.0
+  cupertino_icons: ^1.0.6
+  permission_handler: ^12.0.0+1
+
+  image_picker: ^1.1.2
+  animations: ^2.0.11
+
+  shimmer: ^3.0.0
+  audio_session: ^0.2.2
+
+  # Plus tard
+  record: ^6.0.0
+  flutter_local_notifications: ^19.3.0
+  file_picker: ^6.2.0
+  intl: ^0.18.1
+
+dev_dependencies:
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.9
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+
+flutter_launcher_icons:
+  image_path: "assets/icone.png"
+  android: true
+  ios: true

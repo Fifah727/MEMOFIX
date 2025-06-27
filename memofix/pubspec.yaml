@@ -45,6 +45,12 @@ dependencies:
   shimmer: ^3.0.0
   audio_session: ^0.2.2
 
+  # Plus tard
+  record: ^6.0.0
+  flutter_local_notifications: ^19.3.0
+  file_picker: ^6.2.0
+  intl: ^0.18.1
+
 dev_dependencies:
   hive_generator: ^2.0.1
   build_runner: ^2.4.9

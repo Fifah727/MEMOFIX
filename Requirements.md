@@ -150,4 +150,17 @@ Tu peux suivre ton avancement avec :
 
 ---
 
-Souhaites-tu que je t’aide à commencer par un **starter project Flutter (arbo + pubspec.yaml complet)** ou tu veux partir d’un template vide ?
+| Besoin                       | Couvert par…                              | ✅ OK ? |
+| ---------------------------- | ----------------------------------------- | ------ |
+| **Gestion d’état moderne**   | `flutter_riverpod`                        | ✅      |
+| **Base de données locale**   | `hive`, `hive_flutter`, `path_provider`   | ✅      |
+| **Stockage sécurisé**        | `flutter_secure_storage`                  | ✅      |
+| **Authentification locale**  | `local_auth`                              | ✅      |
+| **Notifications et rappels** | `flutter_local_notifications`, `timezone` | ✅      |
+| **Enregistrement vocal**     | `record`                                  | ✅      |
+| **Lecture audio**            | `just_audio`                              | ✅      |
+| **Graphiques de progrès**    | `fl_chart`                                | ✅      |
+| **UI iOS-friendly**          | `cupertino_icons`                         | ✅      |
+| **Génération Hive**          | `hive_generator`, `build_runner`          | ✅      |
+| **Tests + Lints**            | `flutter_test`, `flutter_lints`           | ✅      |
+

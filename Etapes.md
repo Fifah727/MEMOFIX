@@ -258,15 +258,4 @@ class MemoFixApp extends StatelessWidget {
 }
 ```
 
----
-
-## 📍 Prochaine étape ?
-
-Souhaites-tu que je t’aide à :
-
-1. Créer **l'écran des mémos (UI + CRUD)** ?
-2. Intégrer **le module "FixMe"** ?
-3. Gérer **la sécurité (verrouillage app ou notes)** ?
-4. Ajouter **le système de rappels/notifications** ?
-
-Tu peux choisir ce que tu veux faire maintenant.
+--

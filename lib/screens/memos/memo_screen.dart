@@ -415,11 +415,16 @@ class _MemoScreenState extends State<MemoScreen> {
         ),
         leading: IconButton(
           icon: const Icon(LineIcons.arrowLeft, color: Colors.black87),
-          onPressed: () => Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
-          ),
+          onPressed: () =>
+              Navigator.pop(context), // Plus simple et plus efficace
         ),
+        // leading: IconButton(
+        //   icon: const Icon(LineIcons.arrowLeft, color: Colors.black87),
+        //   onPressed: () => Navigator.pushReplacement(
+        //     context,
+        //     MaterialPageRoute(builder: (_) => const HomeScreen()),
+        //   ),
+        // ),
         actions: [
           IconButton(
             tooltip: 'Rechercher',
@@ -472,7 +477,7 @@ class _MemoScreenState extends State<MemoScreen> {
                 )
                 .toList(),
             icon: Icon(
-              LineIcons.filter,
+              Icons.filter_frames,
               color: Colors.grey.shade700, // icône plus discrète
               size: 22,
             ),

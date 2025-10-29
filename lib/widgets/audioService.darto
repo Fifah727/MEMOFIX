@@ -1,0 +1,88 @@
+import 'dart:io';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+class AudioNote {
+  int? id;
+  String title;
+  String path;
+
+  AudioNote({this.id, required this.title, required this.path});
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'title': title,
+        'path': path,
+      };
+
+  factory AudioNote.fromMap(Map<String, dynamic> map) => AudioNote(
+        id: map['id'],
+        title: map['title'],
+        path: map['path'],
+      );
+}
+
+class AudioService {
+  static Database? _db;
+  static final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
+
+  static Future<Database> get db async {
+    if (_db != null) return _db!;
+    _db = await initDB();
+    return _db!;
+  }
+
+  static Future<Database> initDB() async {
+    final documentsDirectory = await getApplicationDocumentsDirectory();
+    final path = join(documentsDirectory.path, "audio_notes.db");
+    return await openDatabase(path, version: 1, onCreate: (db, version) async {
+      await db.execute('''
+        CREATE TABLE audio_notes(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT,
+          path TEXT
+        )
+      ''');
+    });
+  }
+
+  // Ajouter une note
+  static Future<int> addNote(AudioNote note) async {
+    final database = await db;
+    return await database.insert('audio_notes', note.toMap());
+  }
+
+  // Récupérer toutes les notes
+  static Future<List<AudioNote>> getNotes() async {
+    final database = await db;
+    final maps = await database.query('audio_notes', orderBy: 'id DESC');
+    return maps.map((map) => AudioNote.fromMap(map)).toList();
+  }
+
+  // Supprimer une note
+  static Future<void> deleteNote(int id) async {
+    final database = await db;
+    await database.delete('audio_notes', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Enregistrement audio
+  static Future<String?> startRecording(String fileName) async {
+    final status = await Permission.microphone.request();
+    if (!status.isGranted) return null;
+
+    final dir = await getApplicationDocumentsDirectory();
+    final path = join(dir.path, "$fileName.aac");
+
+    await _recorder.openRecorder();
+    await _recorder.startRecorder(toFile: path, codec: Codec.aacADTS);
+    return path;
+  }
+
+  static Future<void> stopRecording() async {
+    await _recorder.stopRecorder();
+    await _recorder.closeRecorder();
+  }
+}

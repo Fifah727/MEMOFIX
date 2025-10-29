@@ -69,8 +69,29 @@ class _HomeScreenState extends State<HomeScreen> {
           'MémoFix',
           style: TextStyle(fontSize: 22, color: Colors.black87),
         ),
-        leading: null,
+        automaticallyImplyLeading: false,
         actions: [
+          IconButton(
+            tooltip: 'Audio',
+            icon: const Icon(LineIcons.stickyNote, color: Colors.black87),
+            onPressed: () {
+              Navigator.pushNamed(context, '/audio');
+            },
+          ),
+          IconButton(
+            tooltip: 'Checklist',
+            icon: const Icon(LineIcons.stickyNote, color: Colors.black87),
+            onPressed: () {
+              Navigator.pushNamed(context, '/checklist');
+            },
+          ),
+          IconButton(
+            tooltip: 'Lock-Schema',
+            icon: const Icon(LineIcons.stickyNote, color: Colors.black87),
+            onPressed: () {
+              Navigator.pushNamed(context, '/lock');
+            },
+          ),
           IconButton(
             tooltip: 'Memos',
             icon: const Icon(LineIcons.stickyNote, color: Colors.black87),

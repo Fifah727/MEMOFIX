@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:memofix/theme/colors.dart';
 import 'screens/memos/memo_screen.dart';
-import 'screens/media.dart';
 import 'screens/fixme/fixme_screen.dart';
 import 'screens/home_screen.dart';
 import 'widgets/lottie.dart';
 import 'widgets/addMemoPlus.dart';
+import 'widgets/checklist.dart';
+import 'widgets/schemaScreen.dart';
 
 final ThemeData lightTheme = ThemeData(
   brightness: Brightness.light,
@@ -201,7 +202,7 @@ void main() {
 
 class MemoFixApp extends StatelessWidget {
   const MemoFixApp({super.key});
-
+  // final List<int> correctPattern = [1,2,3,4];
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -216,6 +217,7 @@ class MemoFixApp extends StatelessWidget {
         '/memo': (context) => const MemoScreen(),
         '/fixme': (context) => const FixmeScreen(),
         '/lottie': (context) => LottieExample(),
+        '/checklist': (context) => ChecklistScreen(),
       },
     );
   }

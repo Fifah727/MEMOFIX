@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:memofix/theme/colors.dart';
 import 'screens/memos/memo_screen.dart';
 import 'screens/fixme/fixme_screen.dart';
+import 'screens/fixme/bugListScreen.dart';
 import 'screens/home_screen.dart';
 import 'widgets/lottie.dart';
-import 'widgets/addMemoPlus.dart';
-import 'widgets/checklist.dart';
-import 'widgets/schemaScreen.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 final ThemeData lightTheme = ThemeData(
   brightness: Brightness.light,
@@ -33,36 +33,24 @@ final ThemeData lightTheme = ThemeData(
     outline: AppColors.lightTextSecondary,
     shadow: Colors.black26,
   ),
-  textTheme: const TextTheme(
-    displayLarge: TextStyle(
-      color: AppColors.lightTextPrimary,
-      fontSize: 32,
-      fontWeight: FontWeight.bold,
+  textTheme: GoogleFonts.ralewayTextTheme(ThemeData.dark().textTheme).copyWith(
+    bodyMedium: GoogleFonts.raleway(
+      fontSize: 16,
+      fontWeight: FontWeight.w400,
+      letterSpacing: 0.5,
+      color: Colors.white70,
     ),
-    titleLarge: TextStyle(
-      color: AppColors.lightTextPrimary,
-      fontSize: 22,
-      fontWeight: FontWeight.w600,
-    ),
-    titleMedium: TextStyle(
-      color: AppColors.lightTextPrimary,
+    bodyLarge: GoogleFonts.raleway(
       fontSize: 18,
       fontWeight: FontWeight.w500,
+      letterSpacing: 0.5,
+      color: Colors.white70,
     ),
-    bodyLarge: TextStyle(
-      color: AppColors.lightTextPrimary,
-      fontSize: 16,
-      height: 1.5,
-    ),
-    bodyMedium: TextStyle(
-      color: AppColors.lightTextSecondary,
-      fontSize: 14,
-      height: 1.4,
-    ),
-    labelLarge: TextStyle(
-      color: AppColors.lightTextPrimary,
-      fontSize: 14,
-      fontWeight: FontWeight.w500,
+    titleMedium: GoogleFonts.raleway(
+      fontSize: 20,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.5,
+      color: Colors.white,
     ),
   ),
   floatingActionButtonTheme: const FloatingActionButtonThemeData(
@@ -127,36 +115,24 @@ final ThemeData darkTheme = ThemeData(
     outline: AppColors.darkTextSecondary,
     shadow: Colors.black54,
   ),
-  textTheme: const TextTheme(
-    displayLarge: TextStyle(
-      color: AppColors.darkTextPrimary,
-      fontSize: 32,
-      fontWeight: FontWeight.bold,
+  textTheme: GoogleFonts.ralewayTextTheme(ThemeData.dark().textTheme).copyWith(
+    bodyMedium: GoogleFonts.raleway(
+      fontSize: 16,
+      fontWeight: FontWeight.w400,
+      letterSpacing: 0.5,
+      color: Colors.white70,
     ),
-    titleLarge: TextStyle(
-      color: AppColors.darkTextPrimary,
-      fontSize: 22,
-      fontWeight: FontWeight.w600,
-    ),
-    titleMedium: TextStyle(
-      color: AppColors.darkTextPrimary,
+    bodyLarge: GoogleFonts.raleway(
       fontSize: 18,
       fontWeight: FontWeight.w500,
+      letterSpacing: 0.5,
+      color: Colors.white70,
     ),
-    bodyLarge: TextStyle(
-      color: AppColors.darkTextPrimary,
-      fontSize: 16,
-      height: 1.5,
-    ),
-    bodyMedium: TextStyle(
-      color: AppColors.darkTextSecondary,
-      fontSize: 14,
-      height: 1.4,
-    ),
-    labelLarge: TextStyle(
-      color: AppColors.darkTextPrimary,
-      fontSize: 14,
-      fontWeight: FontWeight.w500,
+    titleMedium: GoogleFonts.raleway(
+      fontSize: 20,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.5,
+      color: Colors.white,
     ),
   ),
   floatingActionButtonTheme: const FloatingActionButtonThemeData(
@@ -216,8 +192,8 @@ class MemoFixApp extends StatelessWidget {
         '/home': (context) => const HomeScreen(),
         '/memo': (context) => const MemoScreen(),
         '/fixme': (context) => const FixmeScreen(),
+        '/bugListe': (context) => const BugListScreen(),
         '/lottie': (context) => LottieExample(),
-        '/checklist': (context) => ChecklistScreen(),
       },
     );
   }

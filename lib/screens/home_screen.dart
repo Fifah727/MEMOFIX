@@ -72,46 +72,44 @@ class _HomeScreenState extends State<HomeScreen> {
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            tooltip: 'Audio',
-            icon: const Icon(LineIcons.stickyNote, color: Colors.black87),
-            onPressed: () {
-              Navigator.pushNamed(context, '/audio');
-            },
-          ),
-          IconButton(
-            tooltip: 'Checklist',
-            icon: const Icon(LineIcons.stickyNote, color: Colors.black87),
-            onPressed: () {
-              Navigator.pushNamed(context, '/checklist');
-            },
-          ),
-          IconButton(
-            tooltip: 'Lock-Schema',
-            icon: const Icon(LineIcons.stickyNote, color: Colors.black87),
-            onPressed: () {
-              Navigator.pushNamed(context, '/lock');
-            },
-          ),
-          IconButton(
             tooltip: 'Memos',
-            icon: const Icon(LineIcons.stickyNote, color: Colors.black87),
-            onPressed: () {
-              Navigator.pushNamed(context, '/memo');
-            },
+            icon: const Icon(
+              LineIcons.stickyNote,
+              size: 24,
+              color: Colors.black87,
+            ),
+            onPressed: () => Navigator.pushNamed(context, '/memo'),
+            splashRadius: 20,
+            visualDensity: VisualDensity.compact,
+            hoverColor: Colors.transparent,
           ),
           IconButton(
             tooltip: 'FixMe',
-            icon: const Icon(LineIcons.tools, color: Colors.black87),
-            onPressed: () {
-              Navigator.pushNamed(context, '/fixme');
-            },
+            icon: const Icon(LineIcons.list, size: 24, color: Colors.black87),
+            onPressed: () => Navigator.pushNamed(context, '/bugListe'),
+            splashRadius: 20,
+            visualDensity: VisualDensity.compact,
+            hoverColor: Colors.transparent,
+          ),
+          IconButton(
+            tooltip: 'FixMe',
+            icon: const Icon(LineIcons.tools, size: 24, color: Colors.black87),
+            onPressed: () => Navigator.pushNamed(context, '/fixme'),
+            splashRadius: 20,
+            visualDensity: VisualDensity.compact,
+            hoverColor: Colors.transparent,
           ),
           IconButton(
             tooltip: 'Animation',
-            icon: const Icon(LineIcons.playCircle, color: Colors.black87),
-            onPressed: () {
-              Navigator.pushNamed(context, '/lottie');
-            },
+            icon: const Icon(
+              LineIcons.playCircle,
+              size: 24,
+              color: Colors.black87,
+            ),
+            onPressed: () => Navigator.pushNamed(context, '/lottie'),
+            splashRadius: 20,
+            visualDensity: VisualDensity.compact,
+            hoverColor: Colors.transparent,
           ),
         ],
       ),

@@ -2,17 +2,21 @@ class MemoItem {
   final int id;
   final String titre;
   final String text;
-  final String category;
+  final int category;
   final DateTime createdAt;
+  final DateTime modifiedAt;
   bool isImportant;
+  bool verrouille;
 
   MemoItem({
     this.id = 0,
     this.titre = "",
-    required this.text,
-    this.category = 'Personnel',
+    this.text = "",
+    this.category = 1,
     required this.createdAt,
+    required this.modifiedAt,
     this.isImportant = false,
+    this.verrouille = false,
   });
 
   @override

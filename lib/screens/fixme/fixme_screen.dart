@@ -195,34 +195,43 @@ class _FixmeScreenState extends State<FixmeScreen> {
 
   Widget _buildSearchBar() {
     return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.25),
-        borderRadius: BorderRadius.circular(22),
+        color: Colors.white.withOpacity(0.18),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.25), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(24),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
           child: TextField(
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+            cursorColor: Colors.white70,
             decoration: InputDecoration(
               hintText: 'Rechercher un bug...',
-              prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 16,
-              ),
               hintStyle: TextStyle(
-                color: Colors.grey.shade500,
+                color: Colors.white.withOpacity(0.6),
                 fontStyle: FontStyle.italic,
+                fontSize: 15,
               ),
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(left: 14, right: 8),
+                child: Icon(
+                  Icons.search_rounded,
+                  color: Colors.white.withOpacity(0.8),
+                  size: 22,
+                ),
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 14),
             ),
           ),
         ),

@@ -1,21 +1,33 @@
 import 'package:flutter/material.dart';
-import '../../widgets/addMemoPlus.dart';
+import '../../widgets/memo/addMemoPlus.dart';
 import 'package:memofix/models/MemoItem.dart';
-import 'package:memofix/services/query/memo_service.dart';
+import 'package:memofix/services/query/memo/memo_service.dart';
+import 'package:memofix/models/CategorieItem.dart';
+import 'package:memofix/services/query/categorie_service.dart';
 import 'package:memofix/screens/home_screen.dart';
-import 'modif_memo.dart';
 import 'package:line_icons/line_icons.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'dart:ui';
+import 'package:memofix/widgets/memo/schemaScreen.dart';
+import 'dart:math' as math;
+import 'package:google_fonts/google_fonts.dart';
+import 'dart:ui'; // pour ImageFilter.blur
+
+enum MemoSortOption { titreAsc, titreDesc, dateAsc, dateDesc, importance }
+
+MemoSortOption _selectedSortOption = MemoSortOption.dateDesc;
 
 class MemoScreen extends StatefulWidget {
   const MemoScreen({super.key});
-
   @override
   State<MemoScreen> createState() => _MemoScreenState();
 }
 
 class _MemoScreenState extends State<MemoScreen> {
   final MemoService memoService = MemoService();
+  final CategorieService categorieService = CategorieService();
+  // Déclare une variable d'état dans ton State
+  double _fabScale = 1.0;
 
   List<MemoItem> _memos = [];
 
@@ -23,8 +35,9 @@ class _MemoScreenState extends State<MemoScreen> {
     id: 0,
     titre: "",
     text: "",
-    category: "idée",
+    category: 1,
     createdAt: DateTime.now(),
+    modifiedAt: DateTime.now(),
   );
 
   Future<void> loadMemos() async {
@@ -38,25 +51,27 @@ class _MemoScreenState extends State<MemoScreen> {
     }
   }
 
+  List<CategorieItem> _categories = [];
+  Future<void> loadCategories() async {
+    try {
+      final cats = await categorieService.getCategories();
+      setState(() {
+        _categories = cats;
+      });
+    } catch (e) {
+      debugPrint("Erreur lors du chargement des categories : $e");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     loadMemos();
+    loadCategories();
   }
 
   final TextEditingController _searchController = TextEditingController();
-  final String _searchQuery = '';
   String _selectedCategory = 'Toutes';
-
-  final List<String> _categories = [
-    'Toutes',
-    'Travail',
-    'Personnel',
-    'Idée',
-    'Tâche',
-    'Musique',
-    'Voyage',
-  ];
 
   void _mettreImportant(MemoItem memo) {
     final updatedMemo = MemoItem(
@@ -65,6 +80,7 @@ class _MemoScreenState extends State<MemoScreen> {
       text: memo.text,
       category: memo.category,
       createdAt: memo.createdAt,
+      modifiedAt: DateTime.now(),
       isImportant: memo.isImportant,
     );
     memoService.important(updatedMemo);
@@ -88,17 +104,143 @@ class _MemoScreenState extends State<MemoScreen> {
   }
 
   List<MemoItem> get _filteredMemos {
-    return _memos.where((memo) {
-      final matchesCategory =
-          _selectedCategory == 'Toutes' || memo.category == _selectedCategory;
-      final matchesSearch = memo.text.toLowerCase().contains(
-        _searchQuery.toLowerCase(),
-      );
-      return matchesCategory && matchesSearch;
-    }).toList();
+    List<MemoItem> filtered = _memos;
+
+    // Filtre par catégorie si nécessaire
+    if (_selectedCategory != "Toutes") {
+      filtered = filtered
+          .where(
+            (memo) => _getCategoryById(
+              memo.category,
+            ).toLowerCase().contains(_selectedCategory.toLowerCase()),
+          )
+          .toList();
+    }
+
+    // Tri selon l'option sélectionnée
+    switch (_selectedSortOption) {
+      case MemoSortOption.titreAsc:
+        filtered.sort(
+          (a, b) => a.titre.toLowerCase().compareTo(b.titre.toLowerCase()),
+        );
+        break;
+      case MemoSortOption.titreDesc:
+        filtered.sort(
+          (a, b) => b.titre.toLowerCase().compareTo(a.titre.toLowerCase()),
+        );
+        break;
+      case MemoSortOption.dateAsc:
+        filtered.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        break;
+      case MemoSortOption.dateDesc:
+        filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      case MemoSortOption.importance:
+        filtered.sort((a, b) {
+          // Les importants en premier
+          if (a.isImportant && !b.isImportant) return -1;
+          if (!a.isImportant && b.isImportant) return 1;
+          // Si égal, on peut trier par date décroissante
+          return b.createdAt.compareTo(a.createdAt);
+        });
+        break;
+    }
+
+    return filtered;
   }
 
-  // Méthode helper pour les couleurs de catégorie
+  String _getMonth(int month) {
+    final months = {
+      1: 'JAN',
+      2: 'FÉV',
+      3: 'MAR',
+      4: 'AVR',
+      5: 'MAI',
+      6: 'JUI',
+      7: 'JUL',
+      8: 'AOÛ',
+      9: 'SEP',
+      10: 'OCT',
+      11: 'NOV',
+      12: 'DÉC',
+    };
+
+    return months[month] ?? '$month';
+  }
+
+  String _formatDate(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+
+    // Format des heures et minutes
+    final hourMinute =
+        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+
+    if (diff.inDays == 0) return "Aujourd’hui à $hourMinute";
+    if (diff.inDays == 1) return "Hier à $hourMinute";
+
+    return '${dt.day} ${_getMonth(dt.month)} à $hourMinute';
+  }
+
+  Widget _buildItem(MemoItem memo, int index) {
+    return Dismissible(
+      key: ValueKey(memo),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => _removeMemo(memo),
+      background: Container(
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(15),
+        ),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.delete_outline, color: Colors.white, size: 28),
+            SizedBox(height: 4),
+            Text(
+              'Supprimer',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+      child: _AnimatedMemoCard(
+        memo: memo,
+        onTap: () {
+          if (memo.verrouille) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    PatternLockScreen(correctPattern: [0, 1, 2, 5], memo: memo),
+              ),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => AddMemoPlus(memo: memo)),
+            );
+          }
+        },
+        onStarTap: () {
+          setState(() => memo.isImportant = !memo.isImportant);
+          _mettreImportant(memo);
+        },
+        getCategoryColor: _getCategoryColor,
+        getCategoryById: _getCategoryById,
+        formatDate: _formatDate,
+      ),
+    );
+  }
+
+  // Fonction qui retourne le chemin de l'image selon la catégorie
+
   Color _getCategoryColor(String category) {
     final colors = {
       'travail': const Color(0xFF1E3A8A), // bleu nuit foncé
@@ -118,165 +260,22 @@ class _MemoScreenState extends State<MemoScreen> {
         );
   }
 
-  String _getMonth(int month) {
-    final months = {
-      1: 'JAN',
-      2: 'FÉV',
-      3: 'MAR',
-      4: 'AVR',
-      5: 'MAI',
-      6: 'JUI',
-      7: 'JUI',
-      8: 'AOÛ',
-      9: 'SEP',
-      10: 'OCT',
-      11: 'NOV',
-      12: 'DÉC',
-    };
-
-    // Pad à gauche pour gérer les mois à 1 chiffre (ex: '1' -> '01')
-    return months[month] ?? '$month';
-  }
-
-  String _formatDate(DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-
-    if (diff.inDays == 0) return 'Aujourd’hui';
-    if (diff.inDays == 1) return 'Hier';
-    return '${dt.day} ${_getMonth(dt.month)}';
-  }
-
-  Widget _buildItem(MemoItem memo, int index) {
-    return Dismissible(
-      key: ValueKey(memo),
-      direction: DismissDirection.endToStart,
-      onDismissed: (_) => _removeMemo(memo),
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.delete_outline, color: Colors.white, size: 28),
-            SizedBox(height: 4),
-            Text(
-              'Supprimer',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15),
-        child: Material(
-          child: InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => AddMemoPlus(memo: memo)),
-              );
-            },
-            splashColor: const Color.fromARGB(
-              255,
-              252,
-              252,
-              252,
-            ).withOpacity(0.2),
-            highlightColor: Colors.transparent,
-            child: Container(
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage(_getCategoryImage(memo.category)),
-                  fit: BoxFit.cover,
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // --- DATE ---
-                    Text(
-                      _formatDate(memo.createdAt),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: const Color.fromARGB(255, 163, 163, 163),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-
-                    // --- TITRE ---
-                    Text(
-                      memo.titre,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade800,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-
-                    // --- TEXTE DU MEMO ---
-                    if (memo.text != null && memo.text!.isNotEmpty)
-                      Text(
-                        memo.text!,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade700,
-                          height: 1.3,
-                        ),
-                        maxLines: 10,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    const SizedBox(height: 10),
-                    // --- ETOILE IMPORTANCE en bas à droite ---
-                    Align(
-                      alignment: Alignment.bottomRight,
-                      child: IconButton(
-                        icon: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 200),
-                          child: Icon(
-                            memo.isImportant
-                                ? Icons.star_rounded
-                                : Icons.star_border_rounded,
-                            key: ValueKey(memo.isImportant),
-                            size: 24,
-                            color: memo.isImportant
-                                ? Colors.amber.shade600
-                                : Colors.grey.shade500,
-                          ),
-                        ),
-                        onPressed: () {
-                          setState(() => memo.isImportant = !memo.isImportant);
-                          _mettreImportant(memo);
-                        },
-                        tooltip: memo.isImportant
-                            ? 'Retirer l\'importance'
-                            : 'Marquer comme important',
-                        splashRadius: 24,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+  String _getCategoryById(int? idCategory) {
+    // getAllCategorie
+    final cat = _categories.firstWhere(
+      (a) => a.id_c == idCategory,
+      orElse: () => CategorieItem(id_c: 0, nom_c: ''), // sécurité
     );
+    return cat.nom_c;
   }
 
-  // Fonction qui retourne le chemin de l'image selon la catégorie
-  String _getCategoryImage(String? category) {
-    switch (category?.toLowerCase()) {
+  String _getCategoryImage(int? idCategory) {
+    // getAllCategorie
+    final cat = _categories.firstWhere(
+      (a) => a.id_c == idCategory,
+      orElse: () => CategorieItem(id_c: 0, nom_c: ''), // sécurité
+    );
+    switch (cat.nom_c.toLowerCase()) {
       case 'travail':
         return 'assets/work.jpeg';
       case 'musique':
@@ -286,7 +285,7 @@ class _MemoScreenState extends State<MemoScreen> {
       case 'voyage':
         return 'assets/voyage.webp';
       case 'personnel':
-        return 'assets/work.jpeg';
+        return 'assets/secret-5.jpg';
       case 'idée':
         return 'assets/idee.jpg';
       default:
@@ -298,66 +297,80 @@ class _MemoScreenState extends State<MemoScreen> {
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icône animée
-            TweenAnimationBuilder(
-              tween: Tween<double>(begin: 0, end: 1),
-              duration: const Duration(milliseconds: 800),
-              curve: Curves.elasticOut,
+            // 🌫️ Icône avec halo doux
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 700),
+              curve: Curves.easeOutBack,
               builder: (context, value, child) {
-                return Transform.scale(
-                  scale: value,
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
-                          blurRadius: 20,
-                          spreadRadius: 5,
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.note_add_outlined,
-                      size: 60,
-                      color: Colors.grey.shade400,
+                return Opacity(
+                  opacity: value.clamp(0.0, 1.0), // ✅ empêche dépassement
+                  child: Transform.scale(
+                    scale: value,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100.withOpacity(0.6),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 5,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.sticky_note_2_outlined,
+                        size: 45,
+                        color: Colors.grey.shade400,
+                      ),
                     ),
                   ),
                 );
               },
             ),
+            const SizedBox(height: 28),
 
-            const SizedBox(height: 24),
-
-            // Texte principal
+            // 🩶 Titre discret
+            // Titre principal
             Text(
-              'Aucun mémo',
+              'Aucun mémo trouvé',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
+                color: Colors.grey.shade600,
+                letterSpacing: 0.5,
               ),
               textAlign: TextAlign.center,
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
-            // Texte secondaire
+            // Sous-texte léger
             Text(
-              'Créez votre premier mémo',
+              'Essayez de créer un mémo ou changez de catégorie',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 color: Colors.grey.shade500,
-                height: 1.5,
+                height: 1.4,
+                letterSpacing: 0.2,
               ),
               textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 30),
+
+            // ✨ Petit indicateur doux (optionnel)
+            Icon(
+              Icons.arrow_downward_rounded,
+              color: Colors.grey.shade300,
+              size: 24,
             ),
           ],
         ),
@@ -415,16 +428,11 @@ class _MemoScreenState extends State<MemoScreen> {
         ),
         leading: IconButton(
           icon: const Icon(LineIcons.arrowLeft, color: Colors.black87),
-          onPressed: () =>
-              Navigator.pop(context), // Plus simple et plus efficace
+          onPressed: () => Navigator.pushNamed(
+            context,
+            "/home",
+          ), // Plus simple et plus efficace
         ),
-        // leading: IconButton(
-        //   icon: const Icon(LineIcons.arrowLeft, color: Colors.black87),
-        //   onPressed: () => Navigator.pushReplacement(
-        //     context,
-        //     MaterialPageRoute(builder: (_) => const HomeScreen()),
-        //   ),
-        // ),
         actions: [
           IconButton(
             tooltip: 'Rechercher',
@@ -435,54 +443,50 @@ class _MemoScreenState extends State<MemoScreen> {
                 delegate: MemoSearchDelegate(_memos),
               ).then((result) {
                 if (result != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: Colors.indigo,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      behavior: SnackBarBehavior.floating,
-                      content: Text(
-                        'Mémo sélectionné : ${result.text}',
-                        style: const TextStyle(color: Colors.white),
-                      ),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddMemoPlus(memo: result),
                     ),
                   );
                 }
               });
             },
           ),
-          PopupMenuButton<String>(
+          PopupMenuButton<MemoSortOption>(
+            tooltip: 'Trier',
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8), // coins plus doux
+              borderRadius: BorderRadius.circular(8),
             ),
-            color: Colors.grey.shade100, // fond discret
+            color: const Color.fromARGB(255, 34, 34, 34),
             onSelected: (value) {
               setState(() {
-                _selectedCategory = value;
+                _selectedSortOption = value;
               });
             },
-            itemBuilder: (context) => _categories
-                .map(
-                  (cat) => PopupMenuItem(
-                    value: cat,
-                    child: Text(
-                      cat,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey.shade800, // texte moins contrasté
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
-            icon: Icon(
-              Icons.filter_frames,
-              color: Colors.grey.shade700, // icône plus discrète
-              size: 22,
-            ),
-            tooltip: 'Filtrer',
-            elevation: 2, // ombre très légère
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: MemoSortOption.titreAsc,
+                child: Text("Titre A → Z"),
+              ),
+              PopupMenuItem(
+                value: MemoSortOption.titreDesc,
+                child: Text("Titre Z → A"),
+              ),
+              PopupMenuItem(
+                value: MemoSortOption.dateAsc,
+                child: Text("Premiers ajoutés"),
+              ),
+              PopupMenuItem(
+                value: MemoSortOption.dateDesc,
+                child: Text("Derniers ajoutés"),
+              ),
+              PopupMenuItem(
+                value: MemoSortOption.importance,
+                child: Text("Importants en premiers"), // nouveau
+              ),
+            ],
+            icon: Icon(Icons.sort, color: Colors.grey.shade700),
           ),
         ],
       ),
@@ -504,23 +508,187 @@ class _MemoScreenState extends State<MemoScreen> {
               Expanded(
                 child: TabBarView(
                   children: [
-                    // Première tab: Memos
-                    filteredMemos.isEmpty
-                        ? _buildEmptyState()
-                        : _buildMemosList(),
-
+                    RefreshIndicator(
+                      onRefresh: () async {
+                        _selectedCategory = "Toutes";
+                        _selectedSortOption = MemoSortOption.dateDesc;
+                        await loadMemos();
+                      },
+                      child: filteredMemos.isEmpty
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: [
+                                SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.6,
+                                  child: _buildEmptyState(),
+                                ),
+                              ],
+                            )
+                          : _buildMemosList(),
+                    ),
                     // Deuxième tab: Categories
                     Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: GridView.count(
-                        crossAxisCount: 2, // 2 colonnes
-                        mainAxisSpacing: 8,
-                        crossAxisSpacing: 8,
-                        children: [
-                          // _buildCategoryCard('Travail'),
-                          // _buildCategoryCard('Personnel'),
-                          // _buildCategoryCard('Idée'),
-                        ],
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
+                      child: GridView.builder(
+                        itemCount: _categories.length,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 10,
+                              crossAxisSpacing: 10,
+                              childAspectRatio: 1.0,
+                            ),
+                        itemBuilder: (context, index) {
+                          final cat = _categories[index];
+                          final categoryName = cat.nom_c;
+                          final categoryImage = _getCategoryImage(cat.id_c);
+                          final isSelected = _selectedCategory == categoryName;
+
+                          return TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0.0, end: 1.0),
+                            duration: Duration(
+                              milliseconds: 300 + (index * 80),
+                            ),
+                            curve: Curves.easeOutCubic,
+                            builder: (context, value, child) {
+                              return Transform.scale(
+                                scale: value,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedCategory = categoryName;
+                                    });
+                                  },
+                                  child: Stack(
+                                    children: [
+                                      // Image de fond adoucie
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(18),
+                                        child: ColorFiltered(
+                                          colorFilter: ColorFilter.mode(
+                                            Colors.black.withOpacity(0.15),
+                                            BlendMode.darken,
+                                          ),
+                                          child: Transform.rotate(
+                                            angle: math.pi, // rotation de 180°
+                                            child: Image.asset(
+                                              categoryImage,
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
+                                              height: double.infinity,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      // Léger dégradé pour lisibilité du texte
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(18),
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                Colors.black.withOpacity(0.05),
+                                                Colors.transparent,
+                                              ],
+                                              begin: Alignment.bottomCenter,
+                                              end: Alignment.topCenter,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+
+                                      // Sélection élégante avec halo léger
+                                      AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 250,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            18,
+                                          ),
+                                          border: Border.all(
+                                            color: isSelected
+                                                ? _getCategoryColor(
+                                                    categoryName,
+                                                  ).withOpacity(1)
+                                                : Colors.transparent,
+                                            width: isSelected ? 2 : 1,
+                                          ),
+                                          boxShadow: isSelected
+                                              ? [
+                                                  BoxShadow(
+                                                    color: _getCategoryColor(
+                                                      categoryName,
+                                                    ).withOpacity(0.1),
+                                                    blurRadius: 5,
+                                                    spreadRadius: 1,
+                                                  ),
+                                                ]
+                                              : [],
+                                        ),
+                                      ),
+
+                                      // Nom de la catégorie centré
+                                      Center(
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withOpacity(
+                                              0.15,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(
+                                                  0.01,
+                                                ),
+                                                blurRadius: 3,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Text(
+                                            categoryName,
+                                            textAlign: TextAlign.center,
+                                            style: GoogleFonts.raleway(
+                                              color: Colors.white,
+                                              fontWeight: isSelected
+                                                  ? FontWeight.w700
+                                                  : FontWeight.w500,
+                                              fontSize: isSelected ? 18 : 16,
+                                              letterSpacing: 1.1,
+                                              textBaseline:
+                                                  TextBaseline.alphabetic,
+                                              shadows: [
+                                                Shadow(
+                                                  color: Colors.black
+                                                      .withOpacity(0.2),
+                                                  blurRadius: 4,
+                                                  offset: const Offset(0, 1),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -531,21 +699,38 @@ class _MemoScreenState extends State<MemoScreen> {
         ),
       ),
 
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => AddMemoPlus(memo: memoVide)),
-          );
+      // Dans le Scaffold :
+      floatingActionButton: GestureDetector(
+        onTapDown: (_) => setState(() => _fabScale = 1.2), // agrandit au clic
+        onTapUp: (_) {
+          setState(() => _fabScale = 1.0); // revient à la taille normale
         },
-        tooltip: 'Ajouter un mémo',
-        backgroundColor: theme.primaryColor, // fond discret
-        foregroundColor: const Color.fromARGB(255, 50, 66, 16),
-        elevation: 2, // ombre légère
-        highlightElevation: 2,
-        child: const Icon(Icons.add, size: 28),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(50), // coins plus arrondis
+        onTapCancel: () =>
+            setState(() => _fabScale = 1.0), // annulation du clic
+        child: AnimatedScale(
+          scale: _fabScale,
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.easeOut,
+          child: FloatingActionButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AddMemoPlus(memo: memoVide)),
+              );
+            },
+            tooltip: 'Ajouter un mémo',
+            backgroundColor: theme.primaryColor.withOpacity(0.9),
+            foregroundColor: Colors.white,
+            elevation: 2,
+            highlightElevation: 6,
+            child: const Icon(Icons.add, size: 28),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            hoverColor: theme.primaryColor.withOpacity(1),
+            splashColor: Colors.white.withOpacity(0.2),
+            mini: false,
+          ),
         ),
       ),
     );
@@ -554,8 +739,31 @@ class _MemoScreenState extends State<MemoScreen> {
 
 class MemoSearchDelegate extends SearchDelegate<MemoItem?> {
   final List<MemoItem> memos;
+  final CategorieService categorieService = CategorieService();
 
-  MemoSearchDelegate(this.memos);
+  List<CategorieItem> _categories = [];
+
+  MemoSearchDelegate(this.memos) {
+    // Charger les catégories dès la création
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final cats = await categorieService.getCategories();
+      _categories = cats;
+    } catch (e) {
+      debugPrint("Erreur lors du chargement des catégories : $e");
+    }
+  }
+
+  String _getCategoryById(int? idCategory) {
+    final cat = _categories.firstWhere(
+      (a) => a.id_c == idCategory,
+      orElse: () => CategorieItem(id_c: 0, nom_c: ''),
+    );
+    return cat.nom_c;
+  }
 
   @override
   String get searchFieldLabel => 'Rechercher un mémo...';
@@ -599,13 +807,17 @@ class MemoSearchDelegate extends SearchDelegate<MemoItem?> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.search_off, size: 64, color: Colors.grey),
+            const Icon(
+              Icons.search_off,
+              size: 64,
+              color: Color.fromARGB(255, 236, 236, 236),
+            ),
             const SizedBox(height: 16),
             Text(
               'Aucun résultat trouvé pour "$query"',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(color: Colors.grey),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: const Color.fromARGB(255, 236, 236, 236),
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -629,11 +841,10 @@ class MemoSearchDelegate extends SearchDelegate<MemoItem?> {
               horizontal: 16,
               vertical: 8,
             ),
-            leading: const Icon(Icons.note, color: Colors.blueAccent),
             title: _highlightText(memo.text, query, context),
             subtitle: Text(
-              memo.category,
-              style: TextStyle(color: Colors.grey[600]),
+              _getCategoryById(memo.category),
+              style: TextStyle(color: const Color(0xFFA8A8A8)),
             ),
             onTap: () => close(context, memo),
           ),
@@ -663,9 +874,11 @@ class MemoSearchDelegate extends SearchDelegate<MemoItem?> {
       itemBuilder: (context, index) {
         final memo = suggestions[index];
         return ListTile(
-          leading: const Icon(Icons.history, color: Colors.grey),
           title: _highlightText(memo.text, query, context),
-          subtitle: Text(memo.category),
+          subtitle: Text(
+            _getCategoryById(memo.category),
+            style: TextStyle(color: const Color(0xFFA8A8A8)),
+          ),
           onTap: () {
             query = memo.text;
             showResults(context);
@@ -701,6 +914,171 @@ class MemoSearchDelegate extends SearchDelegate<MemoItem?> {
           ),
           TextSpan(text: text.substring(endIndex)),
         ],
+      ),
+    );
+  }
+}
+
+class _AnimatedMemoCard extends StatefulWidget {
+  final MemoItem memo;
+  final VoidCallback onTap;
+  final VoidCallback onStarTap;
+  final Color Function(String) getCategoryColor;
+  final String Function(int) getCategoryById;
+  final String Function(DateTime) formatDate;
+
+  const _AnimatedMemoCard({
+    required this.memo,
+    required this.onTap,
+    required this.onStarTap,
+    required this.getCategoryColor,
+    required this.getCategoryById,
+    required this.formatDate,
+  });
+
+  @override
+  State<_AnimatedMemoCard> createState() => _AnimatedMemoCardState();
+}
+
+class _AnimatedMemoCardState extends State<_AnimatedMemoCard> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final memo = widget.memo;
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        scale: _isPressed ? 0.97 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _isPressed
+                ? const Color.fromARGB(255, 224, 241, 209)
+                // 💡 fond plus clair lors du clic
+                : Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(_isPressed ? 0.07 : 0.03),
+                blurRadius: _isPressed ? 8 : 4,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // --- DATE + verrou ---
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    widget.formatDate(memo.createdAt),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color.fromARGB(255, 150, 150, 150),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (memo.verrouille)
+                    const Icon(
+                      Icons.lock_outline,
+                      size: 15,
+                      color: Colors.black,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+
+              // --- TITRE ---
+              Text(
+                memo.titre,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+
+              const SizedBox(height: 6),
+
+              // --- TEXTE ---
+              if (memo.text != null && memo.text!.isNotEmpty)
+                Text(
+                  memo.text!,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                    height: 1.3,
+                  ),
+                  maxLines: 10,
+                  overflow: TextOverflow.ellipsis,
+                ),
+
+              const SizedBox(height: 10),
+
+              // --- CATÉGORIE + ÉTOILE ---
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: widget
+                          .getCategoryColor(
+                            widget.getCategoryById(memo.category),
+                          )
+                          .withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      widget.getCategoryById(memo.category),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: widget.onStarTap,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      transitionBuilder: (child, anim) =>
+                          ScaleTransition(scale: anim, child: child),
+                      child: Icon(
+                        memo.isImportant
+                            ? Icons.star_rounded
+                            : Icons.star_border_rounded,
+                        key: ValueKey(memo.isImportant),
+                        size: 24,
+                        color: memo.isImportant
+                            ? Colors.amber.shade600
+                            : Colors.grey.shade500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

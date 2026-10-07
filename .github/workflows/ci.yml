@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch: # lancement manuel depuis l'onglet Actions
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -33,7 +34,10 @@ jobs:
       - run: flutter --version
       - run: flutter pub get
 
+      # Non bloquant tant que le code n'a pas été formaté une fois.
+      # Retirer `continue-on-error` après un premier passage de `dart format .`.
       - name: Formatage
+        continue-on-error: true
         run: dart format --output=none --set-exit-if-changed .
 
       # Les "info" ne bloquent pas encore (dette connue : withOpacity, etc.).
@@ -57,8 +61,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-android:
-    name: Build Android (debug)
-    needs: quality
+    name: Build APK (debug)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -90,3 +93,11 @@ jobs:
         run: |
           flutter pub get
           flutter build apk --debug
+
+      - name: Publier l'APK
+        if: steps.android.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: memofix-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 14

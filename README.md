@@ -4,7 +4,7 @@
 
 **Notes, mémos audio et suivi de « bugs IRL » — 100 % local, protégé par motif.**
 
-[![CI](https://github.com/<UTILISATEUR>/memofix/actions/workflows/ci.yml/badge.svg)](https://github.com/<UTILISATEUR>/memofix/actions/workflows/ci.yml)
+[![CI](https://github.com/Fifah727/memofix/actions/workflows/ci.yml/badge.svg)](https://github.com/Fifah727/memofix/actions/workflows/ci.yml)
 ![Flutter](https://img.shields.io/badge/Flutter-3.32+-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.8+-0175C2?logo=dart&logoColor=white)
 ![Platform](https://img.shields.io/badge/Android-iOS-3DDC84?logo=android&logoColor=white)
@@ -74,7 +74,7 @@ Versions exactes : [`pubspec.yaml`](pubspec.yaml) et `pubspec.lock`.
 **Prérequis** : Flutter stable (Dart ≥ 3.8.1), SDK Android, JDK 17.
 
 ```bash
-git clone https://github.com/<UTILISATEUR>/memofix.git
+git clone https://github.com/Fifah727/memofix.git
 cd memofix
 flutter pub get
 flutter run
@@ -82,6 +82,17 @@ flutter run
 
 > Les dossiers `android/` et `ios/` doivent être présents. S'ils manquent, restaurez-les
 > depuis votre projet d'origine (en conservant le même `applicationId`).
+
+### Sans installer Android Studio ni Visual Studio
+
+Visual Studio n'est nécessaire que pour la cible Windows desktop, pas pour Android.
+Pour ne rien installer en local, laissez GitHub compiler :
+
+1. Poussez le code sur GitHub.
+2. Onglet **Actions → CI → Run workflow** (ou simplement un push).
+3. Une fois le job terminé, téléchargez l'artefact **memofix-debug-apk** et installez-le sur votre téléphone.
+
+Les logs de `flutter analyze` et `flutter test` y sont aussi disponibles.
 
 ## Configuration
 

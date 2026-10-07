@@ -261,9 +261,7 @@ class BugService {
 
     await db.insert('bug_progress', progressItem.toMap());
 
-    debugPrint(
-      "Objectif mis à jour et bug ${obj.id_bug} avancement = $avancement%",
-    );
+    debugPrint("Objectif mis à jour et bug ${obj.id_bug} avancement = $avancement%");
   }
 
   Future<void> relancerBug(BugItem bug) async {

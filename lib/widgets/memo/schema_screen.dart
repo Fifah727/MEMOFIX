@@ -7,6 +7,7 @@ import 'package:memofix/widgets/memo/add_memo_plus.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/gestures.dart';
 
+
 class SchemaScreen extends StatefulWidget {
   final List<int> correctPattern; // ex: [0,1,2,5]
   final MemoItem memo;
@@ -248,24 +249,27 @@ class _SchemaScreenState extends State<SchemaScreen>
                 const SizedBox(height: 24),
 
                 // À placer dans ton build() où tu veux afficher le Text.rich
-                Text.rich(
-                  TextSpan(
-                    text: "Motif oublié ? ",
-                    children: [
-                      TextSpan(
-                        text: "Réinitialiser",
-                        style: const TextStyle(
-                          color: Colors.blue,
-                          decoration: TextDecoration.underline,
+                  Text.rich(
+                    TextSpan(
+                      text: "Motif oublié ? ",
+                      children: [
+                        TextSpan(
+                          text: "Réinitialiser",
+                          style: const TextStyle(
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () {
+                              Navigator.pushReplacementNamed(
+                                context,
+                                "/forgot",
+                              );
+                            },
                         ),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () {
-                            Navigator.pushReplacementNamed(context, "/forgot");
-                          },
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
               ],
             ),
           ),

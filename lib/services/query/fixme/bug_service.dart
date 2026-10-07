@@ -37,11 +37,50 @@ class BugService {
     }
   }
 
+  // Récupérer un bug
+  Future<BugItem?> getBug(int id) async {
+    final db = await _dbService.getDatabase();
+    try {
+      final List<Map<String, dynamic>> maps = await db.query(
+        "bug",
+        where: 'id_bug = ?',
+        whereArgs: [id],
+        limit: 1,
+      );
+
+      if (maps.isNotEmpty) {
+        return BugItem.fromMap(maps.first);
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print("Erreur lors de la lecture du bug : $e");
+      return null;
+    }
+  }
+
+  // Récupérer l'historique d'un bug
+  Future<List<String>> getCategories() async {
+    final db = await _dbService.getDatabase();
+    try {
+      final List<Map<String, dynamic>> maps = await db.rawQuery(
+        'SELECT DISTINCT categorie FROM bug WHERE categorie IS NOT NULL AND categorie != ""',
+      );
+
+      // Transformer le résultat en List<String>
+      return maps.map((map) => map['categorie'] as String).toList();
+    } catch (e) {
+      print("Erreur lecture catégories : $e");
+      return [];
+    }
+  }
+
   // Ajouter un bug
   Future<int?> ajouterBug(BugItem bug) async {
     final db = await _dbService.getDatabase();
     try {
       final id_bug = await db.insert("bug", bug.toMap());
+      if (id_bug != null) print("Bug ajouté : ${bug.toMap()}");
       return id_bug;
     } catch (e) {
       print("Erreur ajout bug : $e");
@@ -59,6 +98,7 @@ class BugService {
         where: 'id_bug = ?',
         whereArgs: [bug.id_bug],
       );
+      print("Bug modifié : ${bug.toMap()}");
       return true;
     } catch (e) {
       print("Erreur update bug : $e");
@@ -100,10 +140,29 @@ class BugService {
     final db = await _dbService.getDatabase();
     try {
       final id_obj = await db.insert("objectif", objectif.toMap());
+      print("Obj modifié : ${objectif.toMap()}");
       return id_obj;
     } catch (e) {
       print("Erreur ajout objectif : $e");
       return null;
+    }
+  }
+
+  // Mettre à jour un objectif
+  Future<bool> updateObj(ObjectifItem objectif) async {
+    final db = await _dbService.getDatabase();
+    try {
+      await db.update(
+        'objectif',
+        objectif.toMap(),
+        where: 'id_obj = ?',
+        whereArgs: [objectif.id_obj],
+      );
+      print("Obj modifié : ${objectif.toMap()}");
+      return true;
+    } catch (e) {
+      print("Erreur update objectif : $e");
+      return false;
     }
   }
 
@@ -145,5 +204,102 @@ class BugService {
       print("Erreur ajout historique : $e");
       return null;
     }
+  }
+
+  Future<void> updateObjectifAndBugAvancement(ObjectifItem obj) async {
+    final db = await _dbService.getDatabase();
+
+    // 1️⃣ Mettre à jour l'objectif
+    await db.update(
+      'objectif',
+      obj.toMap(),
+      where: 'id_obj = ?',
+      whereArgs: [obj.id_obj],
+    );
+
+    // 2️⃣ Récupérer tous les objectifs du bug
+    final objectifs = await db.query(
+      'objectif',
+      where: 'id_bug = ?',
+      whereArgs: [obj.id_bug],
+    );
+
+    if (objectifs.isEmpty) return;
+
+    // 3️⃣ Calculer l'avancement : % d'objectifs faits
+    final faits = objectifs.where((o) => o['statut'] == 'fait').length;
+    final total = objectifs.length;
+    final avancement = ((faits / total) * 100).toInt();
+
+    // 4️⃣ Préparer la mise à jour du bug
+    Map<String, dynamic> bugUpdate = {'avancement': avancement};
+
+    // Si avancement = 100, on corrige le bug et on ajoute date_cloture
+    if (avancement == 100) {
+      bugUpdate['statut'] = 'corrigé';
+      bugUpdate['date_cloture'] = DateTime.now().toIso8601String();
+    }
+
+    // 5️⃣ Mettre à jour le bug
+    await db.update(
+      'bug',
+      bugUpdate,
+      where: 'id_bug = ?',
+      whereArgs: [obj.id_bug],
+    );
+
+    // 6️⃣ Ajouter un enregistrement dans bug_progress
+    final progressItem = BugProgressItem(
+      id_bug: obj.id_bug,
+      date_modif: DateTime.now(),
+      commentaire: faits == total
+          ? 'Objectif "${obj.valeur_cible}" atteint. Objectifs terminés'
+          : 'Objectif "${obj.valeur_cible}" atteint',
+      avancement: avancement,
+    );
+
+    await db.insert('bug_progress', progressItem.toMap());
+
+    print("Objectif mis à jour et bug ${obj.id_bug} avancement = $avancement%");
+  }
+
+  Future<void> relancerBug(BugItem bug) async {
+    final db = await _dbService.getDatabase();
+
+    await db.delete(
+      'bug_progress',
+      where: 'id_bug = ?',
+      whereArgs: [bug.id_bug],
+    );
+
+    // dechecker les objectifs
+    await db.update(
+      'objectif',
+      {'statut': 'en_cours'},
+      where: 'id_bug = ?',
+      whereArgs: [bug.id_bug],
+    );
+
+    bug.statut = "en_cours";
+    bug.date_cloture = null;
+    bug.avancement = 0;
+
+    await db.update(
+      'bug',
+      bug.toMap(),
+      where: 'id_bug = ?',
+      whereArgs: [bug.id_bug],
+    );
+
+    await db.insert('bug_progress', {
+      'id_bug': bug.id_bug,
+      'date_modif': DateTime.now().toIso8601String(),
+      'commentaire': 'Bug relancé, anciens objectifs supprimés',
+      'avancement': 0,
+    });
+
+    print(
+      "Bug #${bug.id_bug} relancé : statut remis à en_cours et objectifs supprimés",
+    );
   }
 }

@@ -92,17 +92,6 @@ class _MemoScreenState extends State<MemoScreen> {
     super.dispose();
   }
 
-  Future<void> _removeMemo(MemoItem memo) async {
-    // supp memos
-    try {
-      await memoService.supprimerMemo(memo.id);
-      print("Memos deleted avec succes");
-    } catch (e) {
-      debugPrint("Erreur lors de la suppression du memo : $e");
-    }
-    loadMemos();
-  }
-
   List<MemoItem> get _filteredMemos {
     List<MemoItem> filtered = _memos;
 
@@ -168,6 +157,20 @@ class _MemoScreenState extends State<MemoScreen> {
     return months[month] ?? '$month';
   }
 
+  int _selectedIndex = 1;
+
+  final List<String> _routes = [
+    '/home',
+    '/memo',
+    '/bugListe',
+    '/screen-deverouiller',
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
+    Navigator.pushNamed(context, _routes[index]);
+  }
+
   String _formatDate(DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
@@ -183,60 +186,47 @@ class _MemoScreenState extends State<MemoScreen> {
   }
 
   Widget _buildItem(MemoItem memo, int index) {
-    return Dismissible(
-      key: ValueKey(memo),
-      direction: DismissDirection.endToStart,
-      onDismissed: (_) => _removeMemo(memo),
-      background: Container(
-        decoration: BoxDecoration(
-          color: Colors.red,
-          borderRadius: BorderRadius.circular(15),
-        ),
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.delete_outline, color: Colors.white, size: 28),
-            SizedBox(height: 4),
-            Text(
-              'Supprimer',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+    return _AnimatedMemoCard(
+      memo: memo,
+      onTap: () {
+        if (memo.verrouille) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SchemaScreen(
+                correctPattern: [0, 1, 2, 5],
+                memo: memo,
+                deverouiller: false,
               ),
             ),
-          ],
-        ),
-      ),
-      child: _AnimatedMemoCard(
-        memo: memo,
-        onTap: () {
-          if (memo.verrouille) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) =>
-                    PatternLockScreen(correctPattern: [0, 1, 2, 5], memo: memo),
-              ),
-            );
-          } else {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => AddMemoPlus(memo: memo)),
-            );
-          }
-        },
-        onStarTap: () {
-          setState(() => memo.isImportant = !memo.isImportant);
-          _mettreImportant(memo);
-        },
-        getCategoryColor: _getCategoryColor,
-        getCategoryById: _getCategoryById,
-        formatDate: _formatDate,
-      ),
+          );
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => AddMemoPlus(memo: memo)),
+          );
+        }
+      },
+      onStarTap: () {
+        setState(() => memo.isImportant = !memo.isImportant);
+        _mettreImportant(memo);
+      },
+      getCategoryColor: _getCategoryColor,
+      getCategoryById: _getCategoryById,
+      formatDate: _formatDate,
+      removeMemo: _removeMemo,
     );
+  }
+
+  Future<void> _removeMemo(MemoItem memo) async {
+    // supp memos
+    try {
+      await memoService.supprimerMemo(memo.id);
+      print("Memos deleted avec succes");
+    } catch (e) {
+      debugPrint("Erreur lors de la suppression du memo : $e");
+    }
+    loadMemos();
   }
 
   // Fonction qui retourne le chemin de l'image selon la catégorie
@@ -443,12 +433,25 @@ class _MemoScreenState extends State<MemoScreen> {
                 delegate: MemoSearchDelegate(_memos),
               ).then((result) {
                 if (result != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AddMemoPlus(memo: result),
-                    ),
-                  );
+                  if (result.verrouille) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SchemaScreen(
+                          correctPattern: [0, 1, 2, 5],
+                          memo: result,
+                          deverouiller: false,
+                        ),
+                      ),
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AddMemoPlus(memo: result),
+                      ),
+                    );
+                  }
                 }
               });
             },
@@ -733,6 +736,61 @@ class _MemoScreenState extends State<MemoScreen> {
           ),
         ),
       ),
+
+      bottomNavigationBar: NavigationBarTheme(
+        data: NavigationBarThemeData(
+          backgroundColor: Colors.white.withOpacity(0.95),
+          indicatorColor: theme.primaryColor.withOpacity(0.15),
+          elevation: 10,
+          height: 68,
+          labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
+            if (states.contains(WidgetState.selected)) {
+              return TextStyle(
+                color: theme.primaryColor,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              );
+            }
+            return const TextStyle(
+              color: Colors.black54,
+              fontWeight: FontWeight.w500,
+              fontSize: 12,
+            );
+          }),
+          iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
+            if (states.contains(WidgetState.selected)) {
+              return IconThemeData(color: theme.primaryColor, size: 26);
+            }
+            return const IconThemeData(color: Colors.black54, size: 24);
+          }),
+        ),
+        child: NavigationBar(
+          surfaceTintColor: Colors.transparent,
+          shadowColor: Colors.black.withOpacity(0.08),
+          animationDuration: const Duration(milliseconds: 400),
+          labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: _onItemTapped,
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_filled),
+              label: 'Accueil',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.sticky_note_2_sharp),
+              label: 'Mémos',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.bug_report_sharp),
+              label: 'Bugs',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.lock),
+              label: 'Déverouillage',
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -841,6 +899,9 @@ class MemoSearchDelegate extends SearchDelegate<MemoItem?> {
               horizontal: 16,
               vertical: 8,
             ),
+            leading: Icon(
+              memo.verrouille ? Icons.lock : Icons.check_circle_outline,
+            ),
             title: _highlightText(memo.text, query, context),
             subtitle: Text(
               _getCategoryById(memo.category),
@@ -926,6 +987,7 @@ class _AnimatedMemoCard extends StatefulWidget {
   final Color Function(String) getCategoryColor;
   final String Function(int) getCategoryById;
   final String Function(DateTime) formatDate;
+  final Future<void> Function(MemoItem) removeMemo;
 
   const _AnimatedMemoCard({
     required this.memo,
@@ -934,6 +996,7 @@ class _AnimatedMemoCard extends StatefulWidget {
     required this.getCategoryColor,
     required this.getCategoryById,
     required this.formatDate,
+    required this.removeMemo,
   });
 
   @override
@@ -942,6 +1005,7 @@ class _AnimatedMemoCard extends StatefulWidget {
 
 class _AnimatedMemoCardState extends State<_AnimatedMemoCard> {
   bool _isPressed = false;
+  final MemoService memoService = MemoService();
 
   @override
   Widget build(BuildContext context) {
@@ -961,7 +1025,6 @@ class _AnimatedMemoCardState extends State<_AnimatedMemoCard> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,
-          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: _isPressed
                 ? const Color.fromARGB(255, 224, 241, 209)
@@ -976,107 +1039,140 @@ class _AnimatedMemoCardState extends State<_AnimatedMemoCard> {
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --- DATE + verrou ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+          child: Dismissible(
+            key: ValueKey(memo),
+            direction: DismissDirection.endToStart,
+            onDismissed: (_) async {
+              await widget.removeMemo(memo);
+            },
+            background: Container(
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.delete_outline, color: Colors.white, size: 28),
+                  SizedBox(height: 4),
                   Text(
-                    widget.formatDate(memo.createdAt),
-                    style: const TextStyle(
+                    'Supprimer',
+                    style: TextStyle(
+                      color: Colors.white,
                       fontSize: 12,
-                      color: Color.fromARGB(255, 150, 150, 150),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  if (memo.verrouille)
-                    const Icon(
-                      Icons.lock_outline,
-                      size: 15,
-                      color: Colors.black,
-                    ),
                 ],
               ),
-              const SizedBox(height: 6),
-
-              // --- TITRE ---
-              Text(
-                memo.titre,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade800,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-
-              const SizedBox(height: 6),
-
-              // --- TEXTE ---
-              if (memo.text != null && memo.text!.isNotEmpty)
-                Text(
-                  memo.text!,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
-                    height: 1.3,
-                  ),
-                  maxLines: 10,
-                  overflow: TextOverflow.ellipsis,
-                ),
-
-              const SizedBox(height: 10),
-
-              // --- CATÉGORIE + ÉTOILE ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            ),
+            child: Container(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: widget
-                          .getCategoryColor(
-                            widget.getCategoryById(memo.category),
-                          )
-                          .withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      widget.getCategoryById(memo.category),
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
+                  // --- DATE + verrou ---
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        widget.formatDate(memo.createdAt),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color.fromARGB(255, 150, 150, 150),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
+                      if (memo.verrouille)
+                        const Icon(
+                          Icons.lock_outline,
+                          size: 15,
+                          color: Colors.black,
+                        ),
+                    ],
                   ),
-                  GestureDetector(
-                    onTap: widget.onStarTap,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      transitionBuilder: (child, anim) =>
-                          ScaleTransition(scale: anim, child: child),
-                      child: Icon(
-                        memo.isImportant
-                            ? Icons.star_rounded
-                            : Icons.star_border_rounded,
-                        key: ValueKey(memo.isImportant),
-                        size: 24,
-                        color: memo.isImportant
-                            ? Colors.amber.shade600
-                            : Colors.grey.shade500,
-                      ),
+                  const SizedBox(height: 6),
+
+                  // --- TITRE ---
+                  Text(
+                    memo.titre,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade800,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  // --- TEXTE ---
+                  if (memo.text != null && memo.text!.isNotEmpty)
+                    Text(
+                      memo.text!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                        height: 1.3,
+                      ),
+                      maxLines: 10,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                  const SizedBox(height: 10),
+
+                  // --- CATÉGORIE + ÉTOILE ---
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: widget
+                              .getCategoryColor(
+                                widget.getCategoryById(memo.category),
+                              )
+                              .withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          widget.getCategoryById(memo.category),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: widget.onStarTap,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          transitionBuilder: (child, anim) =>
+                              ScaleTransition(scale: anim, child: child),
+                          child: Icon(
+                            memo.isImportant
+                                ? Icons.star_rounded
+                                : Icons.star_border_rounded,
+                            key: ValueKey(memo.isImportant),
+                            size: 24,
+                            color: memo.isImportant
+                                ? Colors.amber.shade600
+                                : Colors.grey.shade500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),

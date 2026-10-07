@@ -1,13 +1,13 @@
 class BugItem {
   final int id_bug;
-  final String description;
-  final String cause;
-  final String impact;
-  final String deadline;
-  final String statut; // en_cours / corrigé / abandonné
+  String description;
+  String cause;
+  String impact;
+  DateTime? deadline;
+  String statut; // en_cours / corrigé / abandonné
   final DateTime date_creation;
-  final DateTime? date_cloture;
-  final String categorie; // catégorie
+  DateTime? date_cloture;
+  String categorie; // catégorie
   int avancement; // 0-100%
   final String icon;
 
@@ -16,7 +16,7 @@ class BugItem {
     this.description = "",
     this.cause = "",
     this.impact = "",
-    this.deadline = "",
+    this.deadline,
     this.icon = "",
     this.statut = "en_cours",
     required this.date_creation,
@@ -40,12 +40,17 @@ class BugItem {
       dateCloture = DateTime.tryParse(map['date_cloture']);
     }
 
+    DateTime? dateDeadLine;
+    if (map['deadline'] != null) {
+      dateDeadLine = DateTime.tryParse(map['deadline']);
+    }
+
     return BugItem(
       id_bug: map['id_bug'] ?? 0,
       description: map['description'] ?? "",
       cause: map['cause'] ?? "",
       impact: map['impact'] ?? "",
-      deadline: map['deadline'] ?? "",
+      deadline: dateDeadLine,
       icon: map['icon'] ?? "",
       statut: map['statut'] ?? "en_cours",
       date_creation: dateCreation,
@@ -57,11 +62,10 @@ class BugItem {
 
   Map<String, dynamic> toMap() {
     return {
-      'id_bug': id_bug,
       'description': description,
       'cause': cause,
       'impact': impact,
-      'deadline': deadline,
+      'deadline': deadline?.toIso8601String(),
       'icon': icon,
       'statut': statut,
       'date_creation': date_creation.toIso8601String(),
@@ -70,19 +74,36 @@ class BugItem {
       'avancement': avancement,
     };
   }
+
+  @override
+  String toString() {
+    return 'BugItem('
+        'id_bug: $id_bug, '
+        'description: $description, '
+        'cause: $cause, '
+        'impact: $impact, '
+        'deadline: $deadline, '
+        'statut: $statut, '
+        'categorie: $categorie, '
+        'avancement: $avancement, '
+        'icon: $icon, '
+        'date_creation: $date_creation, '
+        'date_cloture: $date_cloture'
+        ')';
+  }
 }
 
 class ObjectifItem {
   final int id_obj;
-  final String periode;
-  final String valeur_cible;
+  String periode;
+  String valeur_cible;
   final int id_bug;
   final DateTime date_creation;
   String statut; // en_cours / fait / abandonné
 
   ObjectifItem({
     this.id_obj = 0,
-    this.periode = "",
+    required this.periode,
     this.valeur_cible = "",
     required this.id_bug,
     required this.date_creation,
@@ -102,7 +123,6 @@ class ObjectifItem {
 
   Map<String, dynamic> toMap() {
     return {
-      'id_obj': id_obj,
       'periode': periode,
       'valeur_cible': valeur_cible,
       'id_bug': id_bug,
@@ -139,7 +159,6 @@ class BugProgressItem {
 
   Map<String, dynamic> toMap() {
     return {
-      'id_progress': id_progress,
       'id_bug': id_bug,
       'date_modif': date_modif.toIso8601String(),
       'commentaire': commentaire,

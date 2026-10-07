@@ -4,25 +4,31 @@ import 'shemaPatterPoint.dart';
 import 'package:memofix/models/MemoItem.dart';
 import 'package:collection/collection.dart';
 import 'package:memofix/widgets/memo/addMemoPlus.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/gestures.dart';
 
-class PatternLockScreen extends StatefulWidget {
+import 'package:memofix/widgets/enter_recovery_code_screen.dart';
+import 'package:memofix/widgets/forgot_pattern_screen.dart';
+
+class SchemaScreen extends StatefulWidget {
   final List<int> correctPattern; // ex: [0,1,2,5]
   final MemoItem memo;
+  final bool deverouiller;
 
-  const PatternLockScreen({
+  const SchemaScreen({
     super.key,
     required this.correctPattern,
     required this.memo,
+    required this.deverouiller,
   });
 
   @override
-  State<PatternLockScreen> createState() => _PatternLockScreenState();
+  State<SchemaScreen> createState() => _SchemaScreenState();
 }
 
-class _PatternLockScreenState extends State<PatternLockScreen>
+class _SchemaScreenState extends State<SchemaScreen>
     with SingleTickerProviderStateMixin {
   List<PatternPoint> points = [];
-  List<int> currentPattern = [];
   Offset? dragPosition;
 
   Color lineColor = Colors.green.shade400;
@@ -31,6 +37,7 @@ class _PatternLockScreenState extends State<PatternLockScreen>
   @override
   void initState() {
     super.initState();
+    _loadEmail();
     for (int i = 0; i < 9; i++) {
       points.add(PatternPoint(id: i));
     }
@@ -39,7 +46,107 @@ class _PatternLockScreenState extends State<PatternLockScreen>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     )..repeat(reverse: true);
+    _checkIfPatternExists();
   }
+
+  final _storage = const FlutterSecureStorage();
+  String message = "Tracez votre motif";
+  bool hasStoredPattern = false;
+  bool hasRecoveryEmail = false;
+  static const String _key = "pattern_code";
+
+  List<int> currentPattern = [];
+  String? recoveryEmail;
+
+  Future<void> _loadEmail() async {
+    final email = await _storage.read(key: 'recovery_email');
+    setState(() {
+      recoveryEmail = email;
+    });
+  }
+
+  Future<void> _checkIfPatternExists() async {
+    final stored = await _storage.read(key: _key);
+    final email = await _storage.read(key: "recovery_email");
+    setState(() {
+      hasStoredPattern = stored != null;
+      hasRecoveryEmail = email != null;
+      if (!hasStoredPattern || !hasRecoveryEmail) {
+        // se rediriger vers patternLockScreen : pour la 1er fois que aucun schema ou email
+        Navigator.pushReplacementNamed(context, '/lock-false');
+
+        //message = "Aucun code défini — créez-en un d'abord";
+      }
+    });
+  }
+
+  // comparer avec secureStorage
+  void handleEnd() async {
+    dragPosition = null;
+
+    // Récupérer le motif stocké depuis FlutterSecureStorage
+    final stored = await _storage.read(key: _key);
+
+    bool isCorrect = false;
+
+    if (stored != null) {
+      // Stocké sous forme de String, par ex "[1, 2, 3]"
+      // On peut le convertir en List<int>
+      List<int> storedPattern = stored
+          .replaceAll('[', '')
+          .replaceAll(']', '')
+          .split(',')
+          .map((e) => int.tryParse(e.trim()) ?? 0)
+          .toList();
+
+      // Comparaison
+      isCorrect =
+          currentPattern.length == storedPattern.length &&
+          currentPattern.toString() == storedPattern.toString();
+    }
+
+    setState(() {
+      lineColor = isCorrect ? Colors.green.shade400 : Colors.red.shade400;
+    });
+
+    if (isCorrect) {
+      if (widget.deverouiller) {
+        // go to patternSreen
+        Navigator.pushReplacementNamed(context, '/lock-false');
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => AddMemoPlus(memo: widget.memo)),
+        );
+      }
+    }
+
+    Future.delayed(const Duration(milliseconds: 600), () {
+      resetPattern(error: !isCorrect);
+    });
+  }
+
+  // comparer avec widget.correctPattern
+  // void handleEnd() {
+  //   dragPosition = null;
+  //   // Comparaison avec toString() - simple et efficace
+  //   bool isCorrect =
+  //       currentPattern.length == widget.correctPattern.length &&
+  //       currentPattern.toString() == widget.correctPattern.toString();
+  //   setState(() {
+  //     lineColor = isCorrect ? Colors.green.shade400 : Colors.red.shade400;
+  //   });
+  //   if (isCorrect) {
+  //     // retourne au ecran precedant
+  //     Navigator.push(
+  //       context,
+  //       MaterialPageRoute(builder: (_) => AddMemoPlus(memo: widget.memo)),
+  //     );
+  //   }
+  //   Future.delayed(const Duration(milliseconds: 600), () {
+  //     resetPattern(error: !isCorrect);
+  //   });
+  // }
 
   @override
   void dispose() {
@@ -66,31 +173,6 @@ class _PatternLockScreenState extends State<PatternLockScreen>
       }
     }
     setState(() {});
-  }
-
-  void handleEnd() {
-    dragPosition = null;
-
-    // Comparaison avec toString() - simple et efficace
-    bool isCorrect =
-        currentPattern.length == widget.correctPattern.length &&
-        currentPattern.toString() == widget.correctPattern.toString();
-
-    setState(() {
-      lineColor = isCorrect ? Colors.green.shade400 : Colors.red.shade400;
-    });
-
-    if (isCorrect) {
-      // retourne au ecran precedant
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => AddMemoPlus(memo: widget.memo)),
-      );
-    }
-
-    Future.delayed(const Duration(milliseconds: 600), () {
-      resetPattern(error: !isCorrect);
-    });
   }
 
   @override
@@ -137,7 +219,7 @@ class _PatternLockScreenState extends State<PatternLockScreen>
 
                 // Titre discret
                 Text(
-                  'Schéma de déverrouillage',
+                  'Tracer votre motif pour continuer',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
@@ -180,15 +262,29 @@ class _PatternLockScreenState extends State<PatternLockScreen>
 
                 const SizedBox(height: 24),
 
-                // Message subtil
-                Text(
-                  'Tracez votre motif',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade500,
-                    fontWeight: FontWeight.w400,
+                // À placer dans ton build() où tu veux afficher le Text.rich
+                if (recoveryEmail != null && recoveryEmail!.isNotEmpty)
+                  Text.rich(
+                    TextSpan(
+                      text: "Mot de passe oublié ? ",
+                      children: [
+                        TextSpan(
+                          text: "Mot de passe oublié ? ",
+                          style: const TextStyle(
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () {
+                              Navigator.pushReplacementNamed(
+                                context,
+                                "/forgot",
+                              );
+                            },
+                        ),
+                      ],
+                    ),
                   ),
-                ),
               ],
             ),
           ),

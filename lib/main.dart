@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:memofix/theme/colors.dart';
+import 'package:memofix/widgets/memo/schemaScreen.dart';
 import 'screens/memos/memo_screen.dart';
-import 'screens/fixme/fixme_screen.dart';
 import 'screens/fixme/bugListScreen.dart';
 import 'screens/home_screen.dart';
 import 'widgets/lottie.dart';
+import 'widgets/patternLockScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'widgets/enter_recovery_code_screen.dart';
+import 'widgets/forgot_pattern_screen.dart';
+import 'package:memofix/models/MemoItem.dart';
 
 final ThemeData lightTheme = ThemeData(
   brightness: Brightness.light,
@@ -173,12 +177,21 @@ final ThemeData darkTheme = ThemeData(
 );
 
 void main() {
-  runApp(const MemoFixApp());
+  runApp(MemoFixApp());
 }
 
 class MemoFixApp extends StatelessWidget {
-  const MemoFixApp({super.key});
+  MemoFixApp({super.key});
   // final List<int> correctPattern = [1,2,3,4];
+  final memoVide = MemoItem(
+    id: 0,
+    titre: "",
+    text: "",
+    category: 1,
+    createdAt: DateTime.now(),
+    modifiedAt: DateTime.now(),
+  );
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -191,10 +204,24 @@ class MemoFixApp extends StatelessWidget {
       routes: {
         '/home': (context) => const HomeScreen(),
         '/memo': (context) => const MemoScreen(),
-        '/fixme': (context) => const FixmeScreen(),
         '/bugListe': (context) => const BugListScreen(),
-        '/lottie': (context) => LottieExample(),
+        '/forgot': (context) => const ForgotPatternScreen(),
+        '/lock-false': (context) => const PatternLockScreen(isSetupMode: true),
+        '/screen-deverouiller': (context) => SchemaScreen(
+          correctPattern: [0, 1, 2, 5],
+          memo: memoVide,
+          deverouiller: true,
+        ),
       },
     );
+    // Navigator.push(
+    //                   context,
+    //                   MaterialPageRoute(
+    //                     builder: (_) => PatternLockScreen(
+    //                       correctPattern: [0, 1, 2, 5],
+    //                       memo: result,
+    //                     ),
+    //                   ),
+    //                 );
   }
 }

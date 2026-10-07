@@ -4,6 +4,8 @@ import 'package:memofix/services/query/fixme/bug_service.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:line_icons/line_icons.dart';
+import 'package:memofix/screens/fixme/bugDetailScreen.dart';
+import 'package:memofix/screens/fixme/bugAddScreen.dart';
 
 class BugListScreen extends StatefulWidget {
   const BugListScreen({super.key});
@@ -14,12 +16,95 @@ class BugListScreen extends StatefulWidget {
 
 class _BugListScreenState extends State<BugListScreen> {
   final BugService _bugService = BugService();
-  late Future<List<BugItem>> _bugsFuture;
+  List<BugItem> _bugs = [];
+
+  Future<void> loadBugs() async {
+    try {
+      final bugs = await _bugService.getBugs();
+      setState(() {
+        _bugs = bugs;
+      });
+    } catch (e) {
+      debugPrint("Erreur lors du chargement des bugs : $e");
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _bugsFuture = _bugService.getBugs();
+    loadBugs();
+  }
+
+  int _selectedIndex = 2;
+
+  final List<String> _routes = [
+    '/home',
+    '/memo',
+    '/bugListe',
+    '/screen-deverouiller',
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
+    Navigator.pushNamed(context, _routes[index]);
+  }
+
+  final TextEditingController _searchController = TextEditingController();
+  String _searchKey = 'Toutes';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<BugItem> get _filteredBugs {
+    List<BugItem> filtered = _bugs;
+    if (_searchKey != "Toutes") {
+      filtered = filtered
+          .where(
+            (memo) => memo.description.toLowerCase().contains(
+              _searchKey.toLowerCase(),
+            ),
+          )
+          .toList();
+    }
+
+    return filtered;
+  }
+
+  IconData _getIconFromString(String? iconName) {
+    switch (iconName) {
+      case 'bug':
+      case 'bug_report':
+        return Icons.bug_report;
+      case 'add':
+        return Icons.add;
+      case 'vie':
+        return Icons.person_pin;
+      case 'étude':
+        return Icons.book;
+      case 'fix':
+      case 'tools':
+        return Icons.build;
+      case 'ui':
+        return Icons.design_services;
+      case 'warning':
+        return Icons.warning;
+      case 'done':
+      case 'check':
+        return Icons.check_circle;
+      case 'play':
+        return Icons.play_arrow;
+      case 'info':
+        return Icons.info;
+      case 'backend':
+        return Icons.storage;
+      case 'performance':
+        return Icons.speed;
+      default:
+        return Icons.bug_report; // icône par défaut
+    }
   }
 
   Color _getStatutColor(String statut) {
@@ -31,6 +116,19 @@ class _BugListScreenState extends State<BugListScreen> {
       case 'en_cours':
       default:
         return Colors.orange;
+    }
+  }
+
+  String _getStatut(String statut) {
+    switch (statut) {
+      case 'corrigé':
+        return "Corrigé";
+      case 'abandonné':
+        return "Abandonné";
+      case 'en_cours':
+        return "En cours";
+      default:
+        return "En cours";
     }
   }
 
@@ -57,110 +155,97 @@ class _BugListScreenState extends State<BugListScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Rechercher',
-            icon: const Icon(LineIcons.search, color: Colors.black87),
+            tooltip: 'Ajouter',
+            icon: const Icon(LineIcons.plus, color: Colors.black87),
             onPressed: () {
-              // showSearch(
-              //   context: context,
-              //   delegate: MemoSearchDelegate(_memos),
-              // ).then((result) {
-              //   if (result != null) {
-              //     Navigator.push(
-              //       context,
-              //       MaterialPageRoute(
-              //         builder: (_) => AddMemoPlus(memo: result),
-              //       ),
-              //     );
-              //   }
-              // });
+              //
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AddBugScreen()),
+              );
             },
           ),
         ],
       ),
 
-      body: FutureBuilder<List<BugItem>>(
-        future: _bugsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Container(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(_bugs.length),
+                const SizedBox(height: 13),
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text("Aucun bug trouvé"));
-          }
+                // Barre de recherche moderne
+                _buildSearchBar(),
+                const SizedBox(height: 16),
 
-          final bugs = snapshot.data!;
+                // Section des bugs
+                _buildBugsSection(),
 
-          return ListView.separated(
-            padding: const EdgeInsets.all(12),
-            itemCount: bugs.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              final bug = bugs[index];
-              return _buildBugCard(bug);
-              // return Card(
-              //   elevation: 2,
-              //   shape: RoundedRectangleBorder(
-              //     borderRadius: BorderRadius.circular(12),
-              //   ),
-              //   child: ListTile(
-              //     onTap: () {
-              //       // TODO: Navigator vers BugDetailScreen
-              //     },
-              //     title: Text(
-              //       bug.description,
-              //       maxLines: 2,
-              //       overflow: TextOverflow.ellipsis,
-              //       style: const TextStyle(fontWeight: FontWeight.bold),
-              //     ),
-              //     subtitle: Column(
-              //       crossAxisAlignment: CrossAxisAlignment.start,
-              //       children: [
-              //         const SizedBox(height: 4),
-              //         Row(
-              //           children: [
-              //             Text(
-              //               "Statut: ${bug.statut}",
-              //               style: TextStyle(
-              //                 color: _getStatutColor(bug.statut),
-              //                 fontWeight: FontWeight.w500,
-              //               ),
-              //             ),
-              //             const SizedBox(width: 16),
-              //             Text(
-              //               "Avancement: ${bug.avancement}%",
-              //               style: const TextStyle(fontWeight: FontWeight.w500),
-              //             ),
-              //           ],
-              //         ),
-              //         const SizedBox(height: 6),
-              //         // Barre de progression
-              //         ClipRRect(
-              //           borderRadius: BorderRadius.circular(6),
-              //           child: LinearProgressIndicator(
-              //             value: bug.avancement / 100,
-              //             minHeight: 6,
-              //             backgroundColor: Colors.grey[300],
-              //             color: theme.primaryColor,
-              //           ),
-              //         ),
-              //       ],
-              //     ),
-              //     trailing: const Icon(Icons.arrow_forward_ios, size: 18),
-              //   ),
-              // );
-            },
-          );
-        },
+                // Boutons d'action
+                _buildActionButtons(),
+              ],
+            ),
+          ),
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: Navigator vers BugEditScreen pour ajouter un bug
-        },
-        tooltip: 'Ajouter un bug',
-        backgroundColor: theme.primaryColor,
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add, size: 28),
+
+      bottomNavigationBar: NavigationBarTheme(
+        data: NavigationBarThemeData(
+          backgroundColor: Colors.white.withOpacity(0.95),
+          indicatorColor: theme.primaryColor.withOpacity(0.15),
+          elevation: 10,
+          height: 68,
+          labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
+            if (states.contains(WidgetState.selected)) {
+              return TextStyle(
+                color: theme.primaryColor,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              );
+            }
+            return const TextStyle(
+              color: Colors.black54,
+              fontWeight: FontWeight.w500,
+              fontSize: 12,
+            );
+          }),
+          iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
+            if (states.contains(WidgetState.selected)) {
+              return IconThemeData(color: theme.primaryColor, size: 26);
+            }
+            return const IconThemeData(color: Colors.black54, size: 24);
+          }),
+        ),
+        child: NavigationBar(
+          surfaceTintColor: Colors.transparent,
+          shadowColor: Colors.black.withOpacity(0.08),
+          animationDuration: const Duration(milliseconds: 400),
+          labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: _onItemTapped,
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_filled),
+              label: 'Accueil',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.sticky_note_2_sharp),
+              label: 'Mémos',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.bug_report_sharp),
+              label: 'Bugs',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.lock),
+              label: 'Déverouillage',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -168,97 +253,106 @@ class _BugListScreenState extends State<BugListScreen> {
   //
   Color _getCategoryColor(String category) {
     final colors = {
-      'UI': const Color.fromARGB(255, 206, 219, 255), // bleu nuit foncé
-      'Backend': const Color.fromARGB(255, 215, 247, 152), // vert matcha
-      'Performance': const Color.fromARGB(255, 229, 192, 255), // violet profond
+      'ui': const Color.fromARGB(255, 49, 72, 133), // bleu nuit foncé
+      'backend': const Color.fromARGB(255, 110, 133, 66), // vert matcha
+      'performance': const Color.fromARGB(255, 84, 34, 121), // violet profond
     };
 
-    return colors[category.toLowerCase()] ??
-        Color.fromRGBO(
-          (category.hashCode & 0xFF0000) >> 16,
-          (category.hashCode & 0x00FF00) >> 8,
-          (category.hashCode & 0x0000FF),
-          1.0,
-        );
+    // On convertit la catégorie en minuscules pour correspondre aux clés
+    final key = category.toLowerCase();
+
+    // Si la catégorie est connue, on retourne sa couleur exacte
+    if (colors.containsKey(key)) return colors[key]!;
+
+    // Sinon, fallback basique (ex : gris neutre)
+    return const Color.fromARGB(255, 128, 128, 128);
+  }
+
+  Color _getProgressColor(double progress) {
+    // Variante fluide rouge → vert
+    progress = progress.clamp(0, 100);
+    double t = progress / 100;
+
+    final hsl = HSLColor.fromAHSL(1.0, 0 + (120 * t), 0.75, 0.55);
+    return hsl.toColor();
   }
 
   Widget _buildBugCard(BugItem bug) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            _getCategoryColor(bug.categorie).withOpacity(0.25),
-            _getCategoryColor(bug.categorie).withOpacity(0.35),
+    final categoryColor = _getCategoryColor(bug.categorie);
+    final statusColor = _getStatutColor(bug.statut);
+
+    return GestureDetector(
+      onTap: () {
+        // vers BugDetailScreen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BugDetailScreen(id_bug: bug.id_bug),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 3),
+            ),
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF9AE683).withOpacity(0.15),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-        border: Border.all(color: Colors.white.withOpacity(0.15), width: 1),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: ClipRRect(
           child: Padding(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      width: 48,
-                      height: 48,
+                      width: 46,
+                      height: 46,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.25),
+                        color: const Color.fromARGB(255, 236, 236, 236),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Center(
-                        child: Text(
-                          bug.categorie,
-                          style: const TextStyle(fontSize: 24),
-                        ),
+                        child: bug.icon != null && bug.icon!.isNotEmpty
+                            ? Icon(
+                                _getIconFromString(bug.icon),
+                                color: categoryColor,
+                                size: 26,
+                              )
+                            : Text(
+                                bug.categorie.characters.first.toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87,
+                                ),
+                              ),
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            bug.description,
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade900,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            bug.description,
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              color: Colors.grey.shade700,
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        bug.description,
+                        style: const TextStyle(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
-                // Progress bar
+
+                const SizedBox(height: 14),
+                // 🔹 Barre de progression
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -266,7 +360,7 @@ class _BugListScreenState extends State<BugListScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Progression',
+                          'Avancement',
                           style: TextStyle(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w500,
@@ -278,41 +372,59 @@ class _BugListScreenState extends State<BugListScreen> {
                           style: TextStyle(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade800,
+                            color: Colors.grey.shade900,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: Stack(
-                        children: [
-                          Container(
-                            height: 6,
-                            color: Colors.white.withOpacity(0.25),
-                          ),
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.easeOut,
-                            width: (bug.avancement / 100) * 200,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.white.withOpacity(0.9),
-                                  Colors.white.withOpacity(0.6),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
+                    if (bug.avancement != 0) ...[
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return Stack(
+                              children: [
+                                Container(
+                                  height: 6,
+                                  width: double.infinity,
+                                  color: Colors.white.withOpacity(0.25),
+                                ),
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 400),
+                                  curve: Curves.easeOut,
+                                  width:
+                                      (bug.avancement / 100) *
+                                      constraints.maxWidth,
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        _getProgressColor(
+                                          bug.avancement.toDouble(),
+                                        ).withOpacity(0.95),
+                                        _getProgressColor(
+                                          bug.avancement.toDouble(),
+                                        ).withOpacity(0.7),
+                                      ],
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 18),
-                // Footer
+
+                const SizedBox(height: 16),
+
+                // 🔹 Pied de carte
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -322,32 +434,39 @@ class _BugListScreenState extends State<BugListScreen> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: _getStatutColor(bug.statut).withOpacity(0.2),
+                        color: statusColor.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: statusColor.withOpacity(0.25),
+                          width: 0.8,
+                        ),
                       ),
                       child: Text(
-                        bug.statut,
+                        _getStatut(bug.statut),
                         style: TextStyle(
                           fontSize: 12.5,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                           color: Colors.grey.shade800,
                         ),
                       ),
                     ),
                     InkWell(
-                      onTap: () {},
                       borderRadius: BorderRadius.circular(20),
+                      onTap: () {},
                       child: Container(
-                        width: 34,
-                        height: 34,
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.25),
+                          color: Colors.white.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                          ),
                         ),
                         child: Icon(
                           Icons.trending_up_rounded,
-                          size: 17,
-                          color: Colors.grey.shade700,
+                          size: 18,
+                          color: Colors.grey.shade800,
                         ),
                       ),
                     ),
@@ -361,186 +480,215 @@ class _BugListScreenState extends State<BugListScreen> {
     );
   }
 
-  // Widget _buildBugCard(BugItem bug) {
-  //   return Container(
-  //     margin: const EdgeInsets.only(bottom: 18),
-  //     decoration: BoxDecoration(
-  //       gradient: LinearGradient(
-  //         begin: Alignment.topLeft,
-  //         end: Alignment.bottomRight,
-  //         colors: [
-  //           const Color.fromARGB(255, 148, 245, 161).withOpacity(0.25),
-  //           const Color(0xFF9AE683).withOpacity(0.35),
-  //         ],
-  //       ),
-  //       borderRadius: BorderRadius.circular(20),
-  //       boxShadow: [
-  //         BoxShadow(
-  //           color: const Color(0xFF9AE683).withOpacity(0.15),
-  //           blurRadius: 20,
-  //           offset: const Offset(0, 10),
-  //         ),
-  //       ],
-  //       border: Border.all(color: Colors.white.withOpacity(0.15), width: 1),
-  //     ),
-  //     child: ClipRRect(
-  //       borderRadius: BorderRadius.circular(20),
-  //       child: BackdropFilter(
-  //         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-  //         child: Padding(
-  //           padding: const EdgeInsets.all(18),
-  //           child: Column(
-  //             crossAxisAlignment: CrossAxisAlignment.start,
-  //             children: [
-  //               // Header
-  //               Row(
-  //                 children: [
-  //                   Container(
-  //                     width: 48,
-  //                     height: 48,
-  //                     decoration: BoxDecoration(
-  //                       color: Colors.white.withOpacity(0.25),
-  //                       borderRadius: BorderRadius.circular(14),
-  //                     ),
-  //                     child: Center(
-  //                       child: Text(
-  //                         bug.categorie,
-  //                         style: const TextStyle(fontSize: 24),
-  //                       ),
-  //                     ),
-  //                   ),
-  //                   const SizedBox(width: 14),
-  //                   Expanded(
-  //                     child: Column(
-  //                       crossAxisAlignment: CrossAxisAlignment.start,
-  //                       children: [
-  //                         Text(
-  //                           bug.description,
-  //                           style: TextStyle(
-  //                             fontSize: 17,
-  //                             fontWeight: FontWeight.w600,
-  //                             color: Colors.grey.shade900,
-  //                           ),
-  //                         ),
-  //                         const SizedBox(height: 4),
-  //                         Text(
-  //                           bug.description,
-  //                           style: TextStyle(
-  //                             fontSize: 13.5,
-  //                             color: Colors.grey.shade700,
-  //                             height: 1.4,
-  //                           ),
-  //                         ),
-  //                       ],
-  //                     ),
-  //                   ),
-  //                 ],
-  //               ),
+  Widget _buildBugsSection() {
+    final hasBugs = _filteredBugs.isNotEmpty;
 
-  //               const SizedBox(height: 18),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (hasBugs)
+          Column(
+            children: _filteredBugs
+                .map(
+                  (bug) => Padding(
+                    padding: const EdgeInsets.only(bottom: 5),
+                    child: _buildBugCard(bug),
+                  ),
+                )
+                .toList(),
+          )
+        else
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 130),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.sentiment_satisfied_alt_outlined,
+                    color: Colors.grey.shade400,
+                    size: 100,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Aucun bug trouvé',
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 
-  //               // Progress bar
-  //               Column(
-  //                 crossAxisAlignment: CrossAxisAlignment.start,
-  //                 children: [
-  //                   Row(
-  //                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //                     children: [
-  //                       Text(
-  //                         'Progression',
-  //                         style: TextStyle(
-  //                           fontSize: 13.5,
-  //                           fontWeight: FontWeight.w500,
-  //                           color: Colors.grey.shade700,
-  //                         ),
-  //                       ),
-  //                       Text(
-  //                         '${bug.avancement}%',
-  //                         style: TextStyle(
-  //                           fontSize: 13.5,
-  //                           fontWeight: FontWeight.w600,
-  //                           color: Colors.grey.shade800,
-  //                         ),
-  //                       ),
-  //                     ],
-  //                   ),
-  //                   const SizedBox(height: 8),
-  //                   ClipRRect(
-  //                     borderRadius: BorderRadius.circular(4),
-  //                     child: Stack(
-  //                       children: [
-  //                         Container(
-  //                           height: 6,
-  //                           color: Colors.white.withOpacity(0.25),
-  //                         ),
-  //                         AnimatedContainer(
-  //                           duration: const Duration(milliseconds: 400),
-  //                           curve: Curves.easeOut,
-  //                           width: (bug.avancement / 100) * 200,
-  //                           height: 6,
-  //                           decoration: BoxDecoration(
-  //                             gradient: LinearGradient(
-  //                               colors: [
-  //                                 Colors.white.withOpacity(0.9),
-  //                                 Colors.white.withOpacity(0.6),
-  //                               ],
-  //                             ),
-  //                           ),
-  //                         ),
-  //                       ],
-  //                     ),
-  //                   ),
-  //                 ],
-  //               ),
+  Widget _buildHeader(int nombreBugs) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Liste des bugs',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey.shade900,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          '$nombreBugs bugs enregistrés',
+          style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
+        ),
+      ],
+    );
+  }
 
-  //               const SizedBox(height: 18),
+  Widget _buildSearchBar() {
+    return Container(
+      child: ClipRRect(
+        child: TextField(
+          controller: _searchController,
+          onChanged: (val) {
+            if (val != null) {
+              setState(() {
+                _searchKey = val;
+              });
+            }
+          },
+          style: const TextStyle(fontSize: 16, color: Colors.black87),
+          decoration: InputDecoration(
+            hintText: "Recherchez un bug...",
+            hintStyle: TextStyle(color: Colors.grey.shade400),
+            alignLabelWithHint: true,
+            isDense: true,
+            labelStyle: const TextStyle(
+              color: Colors.black54,
+              fontWeight: FontWeight.w500,
+            ),
+            border: OutlineInputBorder(
+              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: const BorderSide(
+                color: Color(0xFF2E7D32),
+                width: 1.5,
+              ),
+            ),
+            prefixIcon: Icon(
+              Icons.search,
+              color: Color.fromARGB(120, 11, 54, 13),
+              size: 25,
+            ),
+            prefixIconConstraints: const BoxConstraints(
+              minWidth: 45, // largeur de l'icône
+              minHeight: 45, // force la hauteur à rester visible
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 16,
+              horizontal: 16,
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF9F9F9),
+          ),
+        ),
+      ),
+    );
+  }
 
-  //               // Footer
-  //               Row(
-  //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //                 children: [
-  //                   Container(
-  //                     padding: const EdgeInsets.symmetric(
-  //                       horizontal: 12,
-  //                       vertical: 6,
-  //                     ),
-  //                     decoration: BoxDecoration(
-  //                       color: Colors.white.withOpacity(0.2),
-  //                       borderRadius: BorderRadius.circular(10),
-  //                     ),
-  //                     child: Text(
-  //                       bug.statut,
-  //                       style: TextStyle(
-  //                         fontSize: 12.5,
-  //                         fontWeight: FontWeight.w500,
-  //                         color: Colors.grey.shade800,
-  //                       ),
-  //                     ),
-  //                   ),
-  //                   InkWell(
-  //                     onTap: () {},
-  //                     borderRadius: BorderRadius.circular(20),
-  //                     child: Container(
-  //                       width: 34,
-  //                       height: 34,
-  //                       decoration: BoxDecoration(
-  //                         color: Colors.white.withOpacity(0.25),
-  //                         borderRadius: BorderRadius.circular(20),
-  //                       ),
-  //                       child: Icon(
-  //                         Icons.trending_up_rounded,
-  //                         size: 17,
-  //                         color: Colors.grey.shade700,
-  //                       ),
-  //                     ),
-  //                   ),
-  //                 ],
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
+  Widget _buildActionButtons() {
+    return Column(
+      children: [
+        // Bouton principal : Nouveau Bug
+        Container(
+          width: double.infinity,
+          height: 50,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.green.shade600, Colors.green.shade400],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.green.shade400.withOpacity(0.35),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ElevatedButton.icon(
+            onPressed: () {
+              // Navigation vers BugEditScreen
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AddBugScreen()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(22),
+              ),
+            ),
+            icon: const Icon(Icons.add, color: Colors.white, size: 22),
+            label: const Text(
+              'Nouveau Bug à Corriger',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // Bouton secondaire : Statistiques
+        // Container(
+        //   width: double.infinity,
+        //   height: 50,
+        //   decoration: BoxDecoration(
+        //     color: Colors.white.withOpacity(0.25),
+        //     borderRadius: BorderRadius.circular(22),
+        //     border: Border.all(color: Colors.grey.withOpacity(0.15)),
+        //     boxShadow: [
+        //       BoxShadow(
+        //         color: Colors.black.withOpacity(0.05),
+        //         blurRadius: 12,
+        //         offset: const Offset(0, 4),
+        //       ),
+        //     ],
+        //   ),
+        //   child: ElevatedButton(
+        //     onPressed: () {
+        //       // Navigation vers statistiques
+        //     },
+        //     style: ElevatedButton.styleFrom(
+        //       backgroundColor: Colors.transparent,
+        //       shadowColor: Colors.transparent,
+        //       shape: RoundedRectangleBorder(
+        //         borderRadius: BorderRadius.circular(22),
+        //       ),
+        //     ),
+        //     child: Text(
+        //       'Voir mes statistiques',
+        //       style: TextStyle(
+        //         color: Colors.grey.shade900,
+        //         fontWeight: FontWeight.w500,
+        //         fontSize: 14,
+        //         letterSpacing: 0.3,
+        //       ),
+        //     ),
+        //   ),
+        // ),
+      ],
+    );
+  }
 }

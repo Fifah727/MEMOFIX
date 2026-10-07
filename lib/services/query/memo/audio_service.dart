@@ -21,7 +21,6 @@ class AudioService {
       if (maps.isNotEmpty) {
         return _mapToAudioItem(maps.first);
       }
-      print("Audio single recuperer");
       return null;
     } catch (e) {
       print("Erreur lecture audio unique : $e");

@@ -1,7 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:sqflite/sqflite.dart';
 import 'dart:async';
-import 'package:memofix/models/AudioItem.dart';
+import 'package:memofix/models/audio_item.dart';
 import '../../db.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -23,7 +24,7 @@ class AudioService {
       }
       return null;
     } catch (e) {
-      print("Erreur lecture audio unique : $e");
+      debugPrint("Erreur lecture audio unique : $e");
       return null;
     }
   }
@@ -39,7 +40,7 @@ class AudioService {
 
       return maps.map((map) => _mapToAudioItem(map)).toList();
     } catch (e) {
-      print("Erreur lors de la lecture des audios du memo $idMemo : $e");
+      debugPrint("Erreur lors de la lecture des audios du memo $idMemo : $e");
       return [];
     }
   }
@@ -48,12 +49,12 @@ class AudioService {
     final db = await _dbService.getDatabase();
     try {
       final idAudio = await db.insert("audio", _AudioItemToMap(Audio));
-      print(
+      debugPrint(
         "2 - Bd : Audio ajouter avec succes avec id_memo: ${Audio.id_memo}",
       );
       return idAudio;
     } catch (e) {
-      print("Erreur ajout Audio : $e");
+      debugPrint("Erreur ajout Audio : $e");
       return null;
     }
   }
@@ -61,13 +62,13 @@ class AudioService {
   Future<void> deleteAudio(String fileName) async {
     // 2️⃣ Construire le chemin complet du fichier
     final file = File('$fileName');
-    print("Filename dans deleteAudio :${fileName} ");
+    debugPrint("Filename dans deleteAudio :${fileName} ");
 
     // 3️⃣ Vérifier si le fichier existe puis supprimer
     if (await file.exists()) {
       await file.delete();
     } else {
-      print('Fichier non trouvé : $fileName');
+      debugPrint('Fichier non trouvé : $fileName');
     }
   }
 
@@ -90,7 +91,7 @@ class AudioService {
 
       return true;
     } catch (e) {
-      print("Erreur suppression audios du memo $idMemo : $e");
+      debugPrint("Erreur suppression audios du memo $idMemo : $e");
       return false;
     }
   }

@@ -1,7 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:sqflite/sqflite.dart';
 import 'dart:async';
-import 'package:memofix/models/ImageItem.dart';
+import 'package:memofix/models/image_item.dart';
 import '../../db.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -20,7 +21,7 @@ class ImageService {
 
       return maps.map((map) => _mapToImageItem(map)).toList();
     } catch (e) {
-      print("Erreur lors de la lecture des images du memo $idMemo : $e");
+      debugPrint("Erreur lors de la lecture des images du memo $idMemo : $e");
       return [];
     }
   }
@@ -31,7 +32,7 @@ class ImageService {
       final idImage = await db.insert("images", _ImageItemToMap(image));
       return idImage;
     } catch (e) {
-      print("Erreur ajout image : $e");
+      debugPrint("Erreur ajout image : $e");
       return null;
     }
   }
@@ -47,9 +48,9 @@ class ImageService {
     // 3️⃣ Vérifier si le fichier existe puis supprimer
     if (await file.exists()) {
       await file.delete();
-      print('Image supprimée : $fileName');
+      debugPrint('Image supprimée : $fileName');
     } else {
-      print('Fichier non trouvé : $fileName');
+      debugPrint('Fichier non trouvé : $fileName');
     }
   }
 
@@ -72,7 +73,7 @@ class ImageService {
 
       return true;
     } catch (e) {
-      print("Erreur suppression images du memo $idMemo : $e");
+      debugPrint("Erreur suppression images du memo $idMemo : $e");
       return false;
     }
   }

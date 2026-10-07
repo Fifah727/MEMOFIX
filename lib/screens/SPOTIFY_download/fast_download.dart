@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 
@@ -28,7 +29,7 @@ class FastDownloader {
         throw Exception("Impossible d'obtenir la taille du fichier");
 
       final sizeInMB = contentLength / (1024 * 1024);
-      print("Taille du fichier : ${sizeInMB.toStringAsFixed(2)} Mo");
+      debugPrint("Taille du fichier : ${sizeInMB.toStringAsFixed(2)} Mo");
 
       // 2️⃣ Calcul des plages
       int partSize = (contentLength / parts).ceil();
@@ -67,13 +68,13 @@ class FastDownloader {
       }
       await raf.close();
 
-      print("Téléchargement terminé : $savePath");
+      debugPrint("Téléchargement terminé : $savePath");
     } catch (e) {
       // Nettoyer les fichiers partiels
       for (var f in tempFiles) {
         if (await f.exists()) await f.delete();
       }
-      print("Erreur : $e");
+      debugPrint("Erreur : $e");
       rethrow; // pour que le screen attrape l’erreur
     }
   }
@@ -123,7 +124,7 @@ class FastDownloader {
           .asFuture();
     } catch (e) {
       await raf.close();
-      print("Exception partie $partIndex : $e");
+      debugPrint("Exception partie $partIndex : $e");
       rethrow;
     }
 

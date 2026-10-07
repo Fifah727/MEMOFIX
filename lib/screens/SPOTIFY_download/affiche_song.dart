@@ -1,3 +1,4 @@
+import 'package:memofix/core/config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -18,9 +19,9 @@ class _SpotifyMetadataScreenState extends State<SpotifyMetadataScreen> {
   bool _isLoading = false;
   String? _error;
 
-  // Vous devez remplacer ces valeurs par vos vraies clés API Spotify
-  final String clientId = 'd1a8664b41414db9afb0f63e064a2c9b';
-  final String clientSecret = '1ce590dcbfdf425fb14bbf246842d259';
+  // Clés injectées via --dart-define (voir lib/core/config/app_config.dart)
+  final String clientId = AppConfig.spotifyClientId;
+  final String clientSecret = AppConfig.spotifyClientSecret;
 
   Future<String> _getSavePath(String filename) async {
     final downloadsDir = Directory(
@@ -45,6 +46,11 @@ class _SpotifyMetadataScreenState extends State<SpotifyMetadataScreen> {
   }
 
   Future<String> _getAccessToken() async {
+    if (!AppConfig.hasSpotifyCredentials) {
+      throw Exception(
+        'Identifiants Spotify non configurés (SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET).',
+      );
+    }
     final String credentials = base64Encode(
       utf8.encode('$clientId:$clientSecret'),
     );

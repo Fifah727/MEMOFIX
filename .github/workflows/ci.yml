@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # À aligner sur `flutter --version` en local (Dart >= 3.8.1 requis).
+  FLUTTER_VERSION: "3.32.x"
+
+jobs:
+  quality:
+    name: Format, analyse, tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter --version
+      - run: flutter pub get
+
+      - name: Formatage
+        run: dart format --output=none --set-exit-if-changed .
+
+      # Les "info" ne bloquent pas encore (dette connue : withOpacity, etc.).
+      # Retirer --no-fatal-infos une fois la dette résorbée.
+      - name: Analyse statique
+        run: flutter analyze --no-fatal-infos
+
+      - name: Tests unitaires
+        run: flutter test
+
+  secrets-scan:
+    name: Détection de secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # historique complet
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-android:
+    name: Build Android (debug)
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dossier android/ présent ?
+        id: android
+        run: |
+          if [ -d android/app ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else
+            echo "::warning::android/ est absent du dépôt : build ignoré. Voir README."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-java@v4
+        if: steps.android.outputs.present == 'true'
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        if: steps.android.outputs.present == 'true'
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Build APK debug
+        if: steps.android.outputs.present == 'true'
+        run: |
+          flutter pub get
+          flutter build apk --debug

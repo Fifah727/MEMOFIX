@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'dart:async';
-import 'package:memofix/models/CategorieItem.dart';
+import 'package:memofix/models/categorie_item.dart';
 import '../db.dart';
 
 class CategorieService {
@@ -13,7 +14,7 @@ class CategorieService {
       // Convertir chaque map en CategorieItem
       return maps.map((map) => _mapToCategorieItem(map)).toList();
     } catch (e) {
-      print("Erreur lors de la lecture des categories : $e");
+      debugPrint("Erreur lors de la lecture des categories : $e");
       return [];
     }
   }

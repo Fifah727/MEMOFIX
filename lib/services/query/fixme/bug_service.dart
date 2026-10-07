@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 // Méthodes
 //getBugs,
 //ajouterBug,
@@ -20,7 +21,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'dart:async';
 import '../../db.dart';
-import 'package:memofix/models/fixme/FixMeItems.dart';
+import 'package:memofix/models/fixme/fixme_items.dart';
 
 class BugService {
   final DbService _dbService = DbService();
@@ -32,7 +33,7 @@ class BugService {
       final List<Map<String, dynamic>> maps = await db.query("bug");
       return maps.map((map) => BugItem.fromMap(map)).toList();
     } catch (e) {
-      print("Erreur lors de la lecture des bugs : $e");
+      debugPrint("Erreur lors de la lecture des bugs : $e");
       return [];
     }
   }
@@ -54,7 +55,7 @@ class BugService {
         return null;
       }
     } catch (e) {
-      print("Erreur lors de la lecture du bug : $e");
+      debugPrint("Erreur lors de la lecture du bug : $e");
       return null;
     }
   }
@@ -70,7 +71,7 @@ class BugService {
       // Transformer le résultat en List<String>
       return maps.map((map) => map['categorie'] as String).toList();
     } catch (e) {
-      print("Erreur lecture catégories : $e");
+      debugPrint("Erreur lecture catégories : $e");
       return [];
     }
   }
@@ -80,10 +81,10 @@ class BugService {
     final db = await _dbService.getDatabase();
     try {
       final id_bug = await db.insert("bug", bug.toMap());
-      if (id_bug != null) print("Bug ajouté : ${bug.toMap()}");
+      if (id_bug != null) debugPrint("Bug ajouté : ${bug.toMap()}");
       return id_bug;
     } catch (e) {
-      print("Erreur ajout bug : $e");
+      debugPrint("Erreur ajout bug : $e");
       return null;
     }
   }
@@ -98,10 +99,10 @@ class BugService {
         where: 'id_bug = ?',
         whereArgs: [bug.id_bug],
       );
-      print("Bug modifié : ${bug.toMap()}");
+      debugPrint("Bug modifié : ${bug.toMap()}");
       return true;
     } catch (e) {
-      print("Erreur update bug : $e");
+      debugPrint("Erreur update bug : $e");
       return false;
     }
   }
@@ -114,7 +115,7 @@ class BugService {
       await db.delete('bug', where: 'id_bug = ?', whereArgs: [id_bug]);
       return true;
     } catch (e) {
-      print("Erreur suppression bug : $e");
+      debugPrint("Erreur suppression bug : $e");
       return false;
     }
   }
@@ -130,7 +131,7 @@ class BugService {
       );
       return maps.map((map) => ObjectifItem.fromMap(map)).toList();
     } catch (e) {
-      print("Erreur lecture objectifs : $e");
+      debugPrint("Erreur lecture objectifs : $e");
       return [];
     }
   }
@@ -140,10 +141,10 @@ class BugService {
     final db = await _dbService.getDatabase();
     try {
       final id_obj = await db.insert("objectif", objectif.toMap());
-      print("Obj modifié : ${objectif.toMap()}");
+      debugPrint("Obj modifié : ${objectif.toMap()}");
       return id_obj;
     } catch (e) {
-      print("Erreur ajout objectif : $e");
+      debugPrint("Erreur ajout objectif : $e");
       return null;
     }
   }
@@ -158,10 +159,10 @@ class BugService {
         where: 'id_obj = ?',
         whereArgs: [objectif.id_obj],
       );
-      print("Obj modifié : ${objectif.toMap()}");
+      debugPrint("Obj modifié : ${objectif.toMap()}");
       return true;
     } catch (e) {
-      print("Erreur update objectif : $e");
+      debugPrint("Erreur update objectif : $e");
       return false;
     }
   }
@@ -173,7 +174,7 @@ class BugService {
       await db.delete('objectif', where: 'id_obj = ?', whereArgs: [id_obj]);
       return true;
     } catch (e) {
-      print("Erreur suppression objectif : $e");
+      debugPrint("Erreur suppression objectif : $e");
       return false;
     }
   }
@@ -189,7 +190,7 @@ class BugService {
       );
       return maps.map((map) => BugProgressItem.fromMap(map)).toList();
     } catch (e) {
-      print("Erreur lecture historique : $e");
+      debugPrint("Erreur lecture historique : $e");
       return [];
     }
   }
@@ -201,7 +202,7 @@ class BugService {
       final id_progress = await db.insert("bug_progress", progress.toMap());
       return id_progress;
     } catch (e) {
-      print("Erreur ajout historique : $e");
+      debugPrint("Erreur ajout historique : $e");
       return null;
     }
   }
@@ -260,7 +261,9 @@ class BugService {
 
     await db.insert('bug_progress', progressItem.toMap());
 
-    print("Objectif mis à jour et bug ${obj.id_bug} avancement = $avancement%");
+    debugPrint(
+      "Objectif mis à jour et bug ${obj.id_bug} avancement = $avancement%",
+    );
   }
 
   Future<void> relancerBug(BugItem bug) async {
@@ -298,7 +301,7 @@ class BugService {
       'avancement': 0,
     });
 
-    print(
+    debugPrint(
       "Bug #${bug.id_bug} relancé : statut remis à en_cours et objectifs supprimés",
     );
   }

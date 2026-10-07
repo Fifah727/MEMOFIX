@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'dart:async';
-import 'package:memofix/models/MemoItem.dart';
+import 'package:memofix/models/memo_item.dart';
 import '../../db.dart';
 import 'package:memofix/services/query/memo/image_service.dart';
 import 'package:memofix/services/query/memo/tache_service.dart';
@@ -16,7 +17,7 @@ class MemoService {
       // Convertir chaque map en MemoItem
       return maps.map((map) => _mapToMemoItem(map)).toList();
     } catch (e) {
-      print("Erreur lors de la lecture des mémos : $e");
+      debugPrint("Erreur lors de la lecture des mémos : $e");
       return [];
     }
   }
@@ -27,7 +28,7 @@ class MemoService {
       final id_memo = await db.insert("memo", _memoItemToMap(memo));
       return id_memo;
     } catch (e) {
-      print("Erreur ajout memo : $e");
+      debugPrint("Erreur ajout memo : $e");
       return null;
     }
   }
@@ -50,7 +51,7 @@ class MemoService {
       await db.delete('memo', where: 'id_m = ?', whereArgs: [id]);
       return true;
     } catch (e) {
-      print("Erreur supp memo : $e");
+      debugPrint("Erreur supp memo : $e");
       return false;
     }
   }
@@ -66,7 +67,7 @@ class MemoService {
       );
       return true;
     } catch (e) {
-      print("Erreur modif memo : $e");
+      debugPrint("Erreur modif memo : $e");
       return false;
     }
   }
@@ -82,7 +83,7 @@ class MemoService {
       );
       return true;
     } catch (e) {
-      print("Erreur modif memo : $e");
+      debugPrint("Erreur modif memo : $e");
       return false;
     }
   }

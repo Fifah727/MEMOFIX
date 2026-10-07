@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../widgets/memo/addMemoPlus.dart';
-import 'package:memofix/models/MemoItem.dart';
+import '../../widgets/memo/add_memo_plus.dart';
+import 'package:memofix/models/memo_item.dart';
 import 'package:memofix/services/query/memo/memo_service.dart';
-import 'package:memofix/models/CategorieItem.dart';
+import 'package:memofix/models/categorie_item.dart';
 import 'package:memofix/services/query/categorie_service.dart';
-import 'package:memofix/screens/home_screen.dart';
 import 'package:line_icons/line_icons.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'dart:ui';
-import 'package:memofix/widgets/memo/schemaScreen.dart';
+import 'package:memofix/widgets/memo/schema_screen.dart';
 import 'dart:math' as math;
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui'; // pour ImageFilter.blur
@@ -222,7 +221,7 @@ class _MemoScreenState extends State<MemoScreen> {
     // supp memos
     try {
       await memoService.supprimerMemo(memo.id);
-      print("Memos deleted avec succes");
+      debugPrint("Memos deleted avec succes");
     } catch (e) {
       debugPrint("Erreur lors de la suppression du memo : $e");
     }
@@ -267,19 +266,19 @@ class _MemoScreenState extends State<MemoScreen> {
     );
     switch (cat.nom_c.toLowerCase()) {
       case 'travail':
-        return 'assets/work.jpeg';
+        return 'assets/images/work.jpeg';
       case 'musique':
-        return 'assets/music.jpg';
+        return 'assets/images/music.jpg';
       case 'tâche':
-        return 'assets/tache.webp';
+        return 'assets/images/tache.webp';
       case 'voyage':
-        return 'assets/voyage.webp';
+        return 'assets/images/voyage.webp';
       case 'personnel':
-        return 'assets/secret-5.jpg';
+        return 'assets/images/secret-5.jpg';
       case 'idée':
-        return 'assets/idee.jpg';
+        return 'assets/images/idee.jpg';
       default:
-        return 'assets/work.jpeg';
+        return 'assets/images/work.jpeg';
     }
   }
 

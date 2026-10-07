@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:memofix/theme/colors.dart';
-import 'package:memofix/widgets/memo/schemaScreen.dart';
-import 'screens/memos/memo_screen.dart';
-import 'screens/fixme/bugListScreen.dart';
-import 'screens/home_screen.dart';
-import 'widgets/lottie.dart';
-import 'widgets/patternLockScreen.dart';
-import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'widgets/enter_recovery_code_screen.dart';
+import 'package:memofix/models/memo_item.dart';
+import 'package:memofix/theme/colors.dart';
+import 'package:memofix/widgets/memo/schema_screen.dart';
+
+import 'screens/fixme/bug_list_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/memos/memo_screen.dart';
 import 'widgets/forgot_pattern_screen.dart';
-import 'package:memofix/models/MemoItem.dart';
+import 'widgets/pattern_lock_screen.dart';
 
 final ThemeData lightTheme = ThemeData(
   brightness: Brightness.light,

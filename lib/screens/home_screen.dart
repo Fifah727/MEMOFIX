@@ -1,11 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../widgets/memo/addMemoPlus.dart';
+import '../widgets/memo/add_memo_plus.dart';
 import 'package:line_icons/line_icons.dart';
-import 'package:memofix/models/MemoItem.dart';
-import 'package:memofix/screens/fixme/bugAddScreen.dart';
+import 'package:memofix/models/memo_item.dart';
+import 'package:memofix/screens/fixme/bug_add_screen.dart';
 import 'package:memofix/services/query/memo/memo_service.dart';
-import 'package:memofix/models/fixme/FixMeItems.dart';
+import 'package:memofix/models/fixme/fixme_items.dart';
 import 'package:memofix/services/query/fixme/bug_service.dart';
 
 class HomeScreen extends StatefulWidget {

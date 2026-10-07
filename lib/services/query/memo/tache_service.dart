@@ -1,8 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'dart:async';
-import 'package:memofix/models/TacheItem.dart';
+import 'package:memofix/models/tache_item.dart';
 import '../../db.dart';
-import 'package:memofix/services/query/memo/image_service.dart';
 
 class TacheService {
   final DbService _dbService = DbService();
@@ -18,7 +18,7 @@ class TacheService {
       );
       return maps.map((map) => _mapToTacheItem(map)).toList();
     } catch (e) {
-      print("Erreur lors de la lecture des taches du memo $idMemo : $e");
+      debugPrint("Erreur lors de la lecture des taches du memo $idMemo : $e");
       return [];
     }
   }
@@ -28,10 +28,10 @@ class TacheService {
     final db = await _dbService.getDatabase();
     try {
       final idTache = await db.insert("tache", _TacheItemToMap(tache));
-      print("Ajout effectuer");
+      debugPrint("Ajout effectuer");
       return idTache;
     } catch (e) {
-      print("Erreur ajout tache : $e");
+      debugPrint("Erreur ajout tache : $e");
       return null;
     }
   }
@@ -40,10 +40,10 @@ class TacheService {
     final db = await _dbService.getDatabase();
     try {
       await db.delete('tache', where: 'id = ?', whereArgs: [id_tache]);
-      print("Suppression effectuer");
+      debugPrint("Suppression effectuer");
       return true;
     } catch (e) {
-      print("Erreur supp tache : $e");
+      debugPrint("Erreur supp tache : $e");
       return false;
     }
   }
@@ -60,7 +60,7 @@ class TacheService {
       );
       return true;
     } catch (e) {
-      print("Erreur modif tache : $e");
+      debugPrint("Erreur modif tache : $e");
       return false;
     }
   }
@@ -80,7 +80,7 @@ class TacheService {
 
       return true;
     } catch (e) {
-      print("Erreur supp taches : $e");
+      debugPrint("Erreur supp taches : $e");
       return false;
     }
   }

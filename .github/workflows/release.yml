@@ -66,7 +66,7 @@ jobs:
           flutter build apk --release --split-per-abi $DEFINES
           flutter build appbundle --release $DEFINES
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: memofix-release
           path: |

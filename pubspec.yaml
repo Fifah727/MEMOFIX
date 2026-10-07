@@ -29,7 +29,7 @@ dependencies:
 
   # Réseau (métadonnées Spotify, téléchargement)
   dio: ^5.9.0
-  http: ^1.5.0
+  http: ^1.6.0
 
   # UI
   cupertino_icons: ^1.0.6
